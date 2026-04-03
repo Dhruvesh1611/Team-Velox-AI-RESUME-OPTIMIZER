@@ -79,7 +79,9 @@ Resume text:
 ${resumeText}
 """`;
 
-  const response = await callAI(prompt);
+  const response = await callAI(prompt, {
+    provider: "gemini",
+  });
 
   try {
     return parseAnalysisResponse(response);

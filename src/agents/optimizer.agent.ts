@@ -35,7 +35,9 @@ Original resume text:
 ${resumeText}
 """`;
 
-  const optimizedResume = await callAI(prompt);
+  const optimizedResume = await callAI(prompt, {
+    provider: "groq",
+  });
   const cleanedResume = optimizedResume.trim();
 
   if (!cleanedResume) {

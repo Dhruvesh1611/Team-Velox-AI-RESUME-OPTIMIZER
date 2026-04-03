@@ -88,7 +88,9 @@ Optimized resume:
 ${optimized}
 """`;
 
-  const response = await callAI(prompt);
+  const response = await callAI(prompt, {
+    provider: "huggingface",
+  });
 
   try {
     return parseReviewResponse(response);
