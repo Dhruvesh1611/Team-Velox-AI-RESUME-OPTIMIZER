@@ -80,7 +80,7 @@ ${resumeText}
 """`;
 
   const response = await callAI(prompt, {
-    provider: "gemini",
+    provider: "groq",
   });
 
   try {
