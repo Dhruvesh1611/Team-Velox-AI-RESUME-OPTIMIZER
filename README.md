@@ -129,7 +129,50 @@ HireLens leverages large language models to:
 * Generate improved, context-aware suggestions
 
 The system emphasizes **meaningful content improvement** rather than simple keyword matching, enabling more effective resume optimization.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    HIRELENS MULTI-AGENT PIPELINE                │
+└─────────────────────────────────────────────────────────────────┘
 
+Step 1: Resume Upload
+    ↓
+Step 2: ANALYZER AGENT
+    │
+    ├─→ Extract skills, experience, education
+    ├─→ Detect weak phrasing ("responsible for", "worked on")
+    ├─→ Identify missing quantifiable metrics
+    ├─→ Find gaps in keyword alignment
+    └─→ Analyze structure and formatting issues
+    │
+    ↓ Output: Structured Analysis JSON
+    │
+    ↓
+Step 3: OPTIMIZER AGENT
+    │
+    ├─→ Takes analysis as input
+    ├─→ Rewrites weak bullet points with impact
+    ├─→ Adds quantifiable metrics where missing
+    ├─→ Enhances professional summary
+    ├─→ Improves action verbs and phrasing
+    └─→ Generates optimized content
+    │
+    ↓ Output: Improved Resume Content
+    │
+    ↓
+Step 4: REVIEWER AGENT DIFFERENTIATOR
+    │
+    ├─→ Compares: Original → Improved
+    ├─→ Validates: Clarity improvements
+    ├─→ Checks: Impact enhancement
+    ├─→ Verifies: Keyword relevance
+    ├─→ Scores: Quality improvement (0-100%)
+    └─→ Generates: Explanation of changes
+    │
+    ↓ Output: Review & Justification
+    │
+    ↓
+Final Output: Optimized Resume + Why It's Better
+```
 ---
 
 ## 7. Scalability and System Design
@@ -256,16 +299,10 @@ The project is aligned with the hackathon judging criteria:
 
 ---
 
-## Team
 
-Team Name: Velox
+## License & Attribution
 
-Members: 2
+This project was developed for hackathon purposes as part of **Team Velox** (2 members). 
 
----
-
-## License
-
-This project is developed for hackathon purposes.
-
-*Built during: OceanLab X CHARUSAT Hacks 2026 (April 3-5, 2026)*
+**Built during:** *OceanLab × CHARUSAT Hacks 2026*
+*(April 3–5, 2026)*
