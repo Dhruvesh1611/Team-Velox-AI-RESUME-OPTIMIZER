@@ -132,6 +132,12 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${firaCode.variable} h-full`}
     >
+      <head>
+        <meta
+          name="google-site-verification"
+          content="xh5H5qEaoQ3aUJzHEfEVE8nnvqNa0-84HZ3JiXFqC9w"
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-[#f8fafc]">
         {children}
       </body>
