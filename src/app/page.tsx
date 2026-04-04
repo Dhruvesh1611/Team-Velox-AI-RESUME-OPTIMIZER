@@ -10,6 +10,7 @@ import ReviewScoreCard from "../components/optimizer/ReviewScoreCard";
 import MockInterviewSection from "../components/optimizer/MockInterviewSection";
 import ResultsSummaryBanner from "../components/optimizer/ResultsSummaryBanner";
 import HistoryList from "../components/optimizer/HistoryList";
+import SiteFooter from "../components/layout/site-footer";
 import { RunActionButton } from "../components/watermelon-ui/run-action-button";
 import { ContinuousTabs } from "../components/watermelon-ui/continuous-tabs";
 import { PricingWidget } from "../components/watermelon-ui/pricing-widget";
@@ -631,21 +632,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-100 bg-white py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-400">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-indigo-600 flex items-center justify-center">
-              <Sparkles size={10} className="text-white" />
-            </div>
-            <span className="font-medium text-slate-600">HireLens</span> · AI Resume Optimizer
-          </div>
-          <p>Built by Velox</p>
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-            <p>Powered by Groq · HuggingFace · Cloudinary · MongoDB</p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

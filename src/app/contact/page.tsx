@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Navbar from "../../components/landing/hero";
+import SiteFooter from "../../components/layout/site-footer";
 import {
-  Sparkles,
   Mail,
   Send,
   User,
@@ -288,19 +288,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-100 bg-white py-8 mt-auto">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-400">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-indigo-600 flex items-center justify-center">
-              <Sparkles size={10} className="text-white" />
-            </div>
-            <span className="font-medium text-slate-600">HireLens</span> · AI Resume Optimizer
-          </div>
-          <p>Built by Team Velox · CHARUSAT</p>
-          <p>Powered by Groq · HuggingFace · Cloudinary · MongoDB</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
