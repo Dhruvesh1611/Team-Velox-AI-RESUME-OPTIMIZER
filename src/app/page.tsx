@@ -15,6 +15,10 @@ import {
   ArrowRight,
   Brain,
   Wand2,
+  ClipboardPaste,
+  SearchCheck,
+  Rocket,
+  Trophy,
   Star,
   Zap,
   FileText,
@@ -58,25 +62,33 @@ const HOW_IT_WORKS = [
     step: "01",
     title: "Paste Your Resume",
     desc: "Copy & paste your raw resume text (or upload a PDF). No formatting needed.",
-    icon: "📋",
+    icon: ClipboardPaste,
+    iconColor: "text-indigo-600",
+    iconBg: "bg-indigo-100",
   },
   {
     step: "02",
     title: "AI Analyzes It",
     desc: "Groq's llama-3.3-70b extracts skills, spots weak phrasing & keyword gaps.",
-    icon: "🧠",
+    icon: SearchCheck,
+    iconColor: "text-blue-600",
+    iconBg: "bg-blue-100",
   },
   {
     step: "03",
     title: "Gets Optimized",
     desc: "Our Optimizer agent rewrites it for clarity, ATS compliance & impact.",
-    icon: "✨",
+    icon: Rocket,
+    iconColor: "text-violet-600",
+    iconBg: "bg-violet-100",
   },
   {
     step: "04",
     title: "Reviewed & Scored",
     desc: "HuggingFace's gpt-oss-120b reviews the result and gives a quality score.",
-    icon: "🏆",
+    icon: Trophy,
+    iconColor: "text-amber-600",
+    iconBg: "bg-amber-100",
   },
 ];
 
@@ -339,20 +351,24 @@ export default function Home() {
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {HOW_IT_WORKS.map((item, i) => (
+            {HOW_IT_WORKS.map((item, i) => {
+              const Icon = item.icon;
+              return (
               <div
                 key={item.step}
                 className="bg-[#f8fafc] rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all animate-slide-up"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <div className="text-3xl mb-3">{item.icon}</div>
+                <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${item.iconBg} mb-3`}>
+                  <Icon size={20} className={item.iconColor} />
+                </div>
                 <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">
                   Step {item.step}
                 </p>
                 <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </section>
