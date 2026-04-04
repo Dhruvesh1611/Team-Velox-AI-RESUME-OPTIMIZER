@@ -19,13 +19,25 @@ const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+
+
+  verification: {
+    google: "xh5H5qEaoQ3aUJzHEfEVE8nnvqNa0-84HZ3JiXFqC9w",
+  },
+
+
   title: {
     default: "HireLens | AI Resume Optimizer and Portfolio Resume Builder",
     template: "%s | HireLens",
   },
+
+
   description:
     "Optimize resumes with a multi-agent AI pipeline, generate ATS-focused resumes from portfolio data, and prepare for interviews with HireLens.",
+
   applicationName: "HireLens",
+
+
   keywords: [
     "AI resume optimizer",
     "ATS resume checker",
@@ -36,13 +48,18 @@ export const metadata: Metadata = {
     "job application tools",
     "HireLens",
   ],
+
   authors: [{ name: "Team Velox" }],
   creator: "Team Velox",
   publisher: "Team Velox",
   category: "career",
+
+
   alternates: {
-    canonical: "/",
+    canonical: siteUrl,
   },
+
+
   openGraph: {
     type: "website",
     url: siteUrl,
@@ -53,20 +70,24 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/opengraph-image",
+        url: `${siteUrl}/opengraph-image`,
         width: 1200,
         height: 630,
         alt: "HireLens AI resume optimization platform",
       },
     ],
   },
+
+
   twitter: {
     card: "summary_large_image",
     title: "HireLens | AI Resume Optimizer and Portfolio Resume Builder",
     description:
       "Multi-agent AI for resume analysis, ATS optimization, portfolio-based resume building, and interview prep.",
-    images: ["/twitter-image"],
+    images: [`${siteUrl}/twitter-image`],
   },
+
+
   robots: {
     index: true,
     follow: true,
@@ -78,7 +99,10 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+
   manifest: "/manifest.webmanifest",
+
+
   icons: {
     icon: [
       { url: "/icon", type: "image/png", sizes: "64x64" },
@@ -100,15 +124,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html
       lang="en"
       className={`${inter.variable} ${firaCode.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-[#f8fafc]">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#f8fafc]">
+        {children}
+      </body>
     </html>
   );
 }

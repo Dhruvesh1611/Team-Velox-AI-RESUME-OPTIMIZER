@@ -1,5 +1,6 @@
 function normalizeSiteUrl(value?: string): string {
   const fallback = "http://localhost:3000";
+
   const trimmed = value?.trim();
 
   if (!trimmed) {
@@ -14,9 +15,5 @@ function normalizeSiteUrl(value?: string): string {
 }
 
 export function getSiteUrl(): string {
-  return normalizeSiteUrl(
-    process.env.NEXT_PUBLIC_SITE_URL ??
-      process.env.VERCEL_PROJECT_PRODUCTION_URL
-  );
+  return normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
 }
-
