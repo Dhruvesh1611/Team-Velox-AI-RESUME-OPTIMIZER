@@ -16,28 +16,64 @@ const firaCode = Fira_Code({
 });
 
 const siteUrl = getSiteUrl();
+const organizationName = "HireLens";
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      name: organizationName,
+      url: siteUrl,
+      description:
+        "AI resume optimizer and portfolio-based resume builder with ATS analysis and interview prep.",
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: organizationName,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      url: siteUrl,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+      description:
+        "Optimize resumes with a multi-agent AI pipeline, generate ATS-focused resumes from portfolio data, and prepare for interviews with HireLens.",
+      featureList: [
+        "AI resume analysis",
+        "Resume enrichment before optimization",
+        "ATS-oriented resume optimization",
+        "Portfolio-based resume builder",
+        "Mock interview preparation",
+      ],
+    },
+    {
+      "@type": "Organization",
+      name: "Team Velox",
+      url: siteUrl,
+      owns: {
+        "@type": "WebSite",
+        name: organizationName,
+        url: siteUrl,
+      },
+    },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-
-
   verification: {
     google: "xh5H5qEaoQ3aUJzHEfEVE8nnvqNa0-84HZ3JiXFqC9w",
   },
-
-
   title: {
     default: "HireLens | AI Resume Optimizer and Portfolio Resume Builder",
     template: "%s | HireLens",
   },
-
-
   description:
     "Optimize resumes with a multi-agent AI pipeline, generate ATS-focused resumes from portfolio data, and prepare for interviews with HireLens.",
-
   applicationName: "HireLens",
-
-
   keywords: [
     "AI resume optimizer",
     "ATS resume checker",
@@ -53,13 +89,15 @@ export const metadata: Metadata = {
   creator: "Team Velox",
   publisher: "Team Velox",
   category: "career",
-
-
+  referrer: "origin-when-cross-origin",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   alternates: {
     canonical: siteUrl,
   },
-
-
   openGraph: {
     type: "website",
     url: siteUrl,
@@ -77,8 +115,6 @@ export const metadata: Metadata = {
       },
     ],
   },
-
-
   twitter: {
     card: "summary_large_image",
     title: "HireLens | AI Resume Optimizer and Portfolio Resume Builder",
@@ -86,8 +122,6 @@ export const metadata: Metadata = {
       "Multi-agent AI for resume analysis, ATS optimization, portfolio-based resume building, and interview prep.",
     images: [`${siteUrl}/twitter-image`],
   },
-
-
   robots: {
     index: true,
     follow: true,
@@ -99,16 +133,19 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-
   manifest: "/manifest.webmanifest",
-
-
   icons: {
     icon: [
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
       { url: "/icon", type: "image/png", sizes: "64x64" },
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
+    shortcut: [
+      { url: "/favicon-32x32.png", type: "image/png" },
+    ],
     apple: [
+      { url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" },
       { url: "/apple-icon", type: "image/png", sizes: "180x180" },
       { url: "/apple-touch-icon.svg", type: "image/svg+xml" },
     ],
@@ -124,21 +161,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html
       lang="en"
       className={`${inter.variable} ${firaCode.variable} h-full`}
     >
-      <head>
-        <meta
-          name="google-site-verification"
-          content="xh5H5qEaoQ3aUJzHEfEVE8nnvqNa0-84HZ3JiXFqC9w"
-        />
-      </head>
       <body className="min-h-full flex flex-col bg-[#f8fafc]">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData),
+          }}
+        />
         {children}
       </body>
     </html>

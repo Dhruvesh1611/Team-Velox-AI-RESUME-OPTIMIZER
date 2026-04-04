@@ -469,24 +469,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Pricing ── */}
-      <section id="pricing" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 mt-4">
-        <div className="text-center mb-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-2">Plans</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Simple Pricing</h2>
-          <p className="text-slate-500 text-sm mt-2">Start free. Upgrade when you need more power.</p>
-        </div>
-        <div className="flex justify-center">
-          <PricingWidget
-            initialBilling="monthly"
-            initialActivePlanId="pro"
-            plansData={HIRELENS_PLANS}
-          />
-        </div>
-      </section>
-
       {/* ── Optimizer ── */}
-      <section id="optimizer" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 pt-6">
+      <section id="optimizer" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 pt-6 mt-10">
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
           {/* Section header */}
           <div className="px-8 py-6 border-b border-slate-100 bg-gradient-to-r from-indigo-50/60 to-violet-50/30">
@@ -502,7 +486,7 @@ export default function Home() {
               <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Optimizer</li>
               <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Reviewer</li>
               <li className="px-2 py-1 rounded-md bg-indigo-100/80 border border-indigo-200 text-indigo-800">
-                + Interview (Groq)
+                + Interview
               </li>
             </ul>
           </div>
@@ -609,7 +593,7 @@ export default function Home() {
 
 
       {/* ── Platform features (UI map of product) ── */}
-      <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 mt-4">
+      <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 mt-10">
         <div className="text-center mb-10">
           <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-2">Product</p>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">What HireLens Offers</h2>
