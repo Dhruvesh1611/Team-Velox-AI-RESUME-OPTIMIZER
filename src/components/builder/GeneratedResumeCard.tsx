@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Check, Lightbulb, TrendingUp, TrendingDown, Eye, Download, X, ExternalLink } from "lucide-react";
-import { FaGithub, FaLinkedin } from "react-icons/fa6";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,8 +25,6 @@ export interface ResumeData {
   education: Array<{ degree: string; institution: string; gpa?: string; year?: string; percentage?: string }>;
 }
 
-export type JobAlignment = "frontend" | "backend" | "fullstack" | "general";
-
 export interface BuilderResult {
   resumeData: ResumeData | null;
   atsScore: number;
@@ -35,14 +32,118 @@ export interface BuilderResult {
   missingKeywords: string[];
   tip: string;
   templateId?: string;
-  jobAlignment?: JobAlignment;
+}
+
+type NormalizedProject = ResumeData["projects"][number];
+
+type DensityMode = "compact" | "standard" | "expanded";
+
+function estimateContentSignals(data: ResumeData): { projectCount: number; bulletCount: number; certCount: number } {
+  const projectCount = data.projects.length;
+  const bulletCount = data.projects.reduce((acc, p) => acc + (p.bullets?.filter(Boolean).length ?? 0), 0);
+  const certCount = data.certificates.length;
+  return { projectCount, bulletCount, certCount };
+}
+
+function pickDensityMode(data: ResumeData, compact: boolean): DensityMode {
+  if (compact) return "compact";
+  const { projectCount, bulletCount, certCount } = estimateContentSignals(data);
+  if (projectCount >= 8 || bulletCount >= 20 || certCount >= 6) return "expanded";
+  return "standard";
+}
+
+function normalizeProjectType(p: NormalizedProject): NormalizedProject["type"] {
+  const text = `${p.type} ${p.category ?? ""} ${p.name}`.toLowerCase();
+  if (text.includes("intern") || text.includes("company") || text.includes("trainee")) return "internship";
+  if (text.includes("freelance") || text.includes("client") || text.includes("paid")) return "freelancing";
+  if (text.includes("open source") || text.includes("opensource") || text.includes("contribution")) return "opensource";
+  if (text.includes("fullstack") || text.includes("full stack") || text.includes("mern")) return "fullstack";
+  if (text.includes("clone") || text.includes("practice") || text.includes("tutorial")) return "other";
+  return p.type || "other";
+}
+
+function prepareProjects(projects: ResumeData["projects"]): {
+  featured: NormalizedProject[];
+  secondary: NormalizedProject[];
+  allSorted: NormalizedProject[];
+} {
+  const priorityOrder: Record<string, number> = {
+    internship: 0,
+    freelancing: 1,
+    opensource: 2,
+    fullstack: 3,
+    other: 4,
+  };
+
+  const normalized = projects.map((p) => {
+    const normalizedType = normalizeProjectType(p);
+    const isSecondary = normalizedType === "other";
+    const bulletCap = isSecondary ? 3 : 5;
+    return {
+      ...p,
+      type: normalizedType,
+      bullets: (p.bullets || []).filter(Boolean).slice(0, bulletCap),
+    };
+  });
+
+  const allSorted = [...normalized].sort(
+    (a, b) => (priorityOrder[a.type] ?? 9) - (priorityOrder[b.type] ?? 9)
+  );
+
+  const featured = allSorted.filter((p) => ["internship", "freelancing", "opensource", "fullstack"].includes(p.type));
+  const secondary = allSorted.filter((p) => p.type === "other");
+
+  return { featured, secondary, allSorted };
+}
+
+function buildProfileSnapshot(data: ResumeData): string {
+  const topSkills = [
+    data.skills.frontend,
+    data.skills.backend,
+    data.skills.database,
+    data.skills.tools,
+  ]
+    .filter(Boolean)
+    .join(", ")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const priorityOrder: Record<string, number> = {
+    internship: 0,
+    freelancing: 1,
+    opensource: 2,
+    fullstack: 3,
+    other: 4,
+  };
+
+  const topProjects = [...data.projects]
+    .sort((a, b) => {
+      const ta = normalizeProjectType(a);
+      const tb = normalizeProjectType(b);
+      return (priorityOrder[ta] ?? 9) - (priorityOrder[tb] ?? 9);
+    })
+    .map((p) => p.name)
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const parts = [
+    `${data.title || "Software Developer"} focused on building production-ready web applications`,
+    topSkills.length > 0 ? `with strong hands-on skills in ${topSkills.join(", ")}` : "",
+    topProjects.length > 0 ? `and proven delivery across projects like ${topProjects.join(", ")}` : "",
+  ].filter(Boolean);
+
+  return parts.join(" ") + ".";
 }
 
 // ── Resume renderer component ─────────────────────────────────────────────
 
 function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?: boolean }) {
+  const densityMode = pickDensityMode(data, compact);
   const fs = compact ? "text-[9px]" : "text-[10px]";
   const headingBorder = "border-b-2 border-gray-800 pb-0.5 mb-1.5 font-bold uppercase tracking-wider";
+  const profileSnapshot = buildProfileSnapshot(data);
 
   const skillRows = [
     data.skills.frontend && { label: "Frontend", value: data.skills.frontend },
@@ -54,23 +155,27 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
     data.skills.languages && { label: "Languages", value: data.skills.languages },
   ].filter(Boolean) as { label: string; value: string }[];
 
-  const priorityOrder: Record<string, number> = {
-    internship: 0,
-    freelancing: 1,
-    fullstack: 2,
-    frontend: 3,
-    backend: 3,
-    opensource: 4,
-    other: 5,
-  };
-  const projects = [...data.projects].sort((a, b) => (priorityOrder[a.type] ?? 5) - (priorityOrder[b.type] ?? 5));
+  const { featured, secondary } = prepareProjects(data.projects);
+  const totalProjectCount = featured.length + secondary.length;
+  const lowContentMode = totalProjectCount <= 4;
+  const groupedPrimary: Record<string, typeof featured> = {};
+  const groupedSecondary: Record<string, typeof secondary> = {};
 
-  // Group projects by category
-  const grouped: Record<string, typeof projects> = {};
-  for (const p of projects) {
+  const featuredLimit = densityMode === "expanded" ? 10 : compact ? 5 : 7;
+  const secondaryLimit = densityMode === "expanded" ? 10 : compact ? 3 : 6;
+  const secondaryBulletLimit = densityMode === "expanded" ? 3 : 2;
+  const certificateLimit = densityMode === "expanded" ? 12 : compact ? 6 : 8;
+
+  for (const p of featured.slice(0, featuredLimit)) {
     const cat = p.category || p.type.toUpperCase();
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(p);
+    if (!groupedPrimary[cat]) groupedPrimary[cat] = [];
+    groupedPrimary[cat].push(p);
+  }
+
+  for (const p of secondary.slice(0, secondaryLimit)) {
+    const cat = p.category || "OTHER PROJECTS";
+    if (!groupedSecondary[cat]) groupedSecondary[cat] = [];
+    groupedSecondary[cat].push(p);
   }
 
   return (
@@ -90,59 +195,29 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
         <div className={`flex flex-wrap gap-x-3 gap-y-0.5 mt-1 ${compact ? "text-[7.5px]" : "text-[8.5px]"} text-gray-600`}>
           {data.contacts.email && <span>✉ {data.contacts.email}</span>}
           {data.contacts.phone && <span>☏ {data.contacts.phone}</span>}
-          {data.contacts.github && (
-            <a
-              href={data.contacts.github.startsWith("http") ? data.contacts.github : `https://${data.contacts.github}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-0.5 text-indigo-700 hover:underline"
-            >
-              <FaGithub className="inline flex-shrink-0" />
-              GitHub
-            </a>
-          )}
-          {data.contacts.linkedin && (
-            <a
-              href={
-                data.contacts.linkedin.startsWith("http")
-                  ? data.contacts.linkedin
-                  : `https://${data.contacts.linkedin}`
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-0.5 text-[#0A66C2] hover:underline"
-            >
-              <FaLinkedin className="inline flex-shrink-0" />
-              LinkedIn
-            </a>
-          )}
-          {data.contacts.portfolio && (
-            <a
-              href={
-                data.contacts.portfolio.startsWith("http")
-                  ? data.contacts.portfolio
-                  : `https://${data.contacts.portfolio}`
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-0.5 text-indigo-700 hover:underline"
-            >
-              <ExternalLink size={9} className="flex-shrink-0" />
-              Portfolio
-            </a>
-          )}
+          {data.contacts.github && <span>⌥ {data.contacts.github.replace("https://", "")}</span>}
+          {data.contacts.linkedin && <span>in {data.contacts.linkedin.replace("https://linkedin.com/in/", "linkedin.com/in/")}</span>}
+          {data.contacts.portfolio && <span>⊕ {data.contacts.portfolio.replace("https://", "")}</span>}
         </div>
       </div>
 
       {/* ── Two-column body ── */}
       <div className="flex gap-4">
         {/* LEFT column */}
-        <div className="w-[36%] flex-shrink-0 space-y-2.5">
+        <div className="w-[34%] flex-shrink-0 space-y-2.5">
+          {/* Profile Snapshot */}
+          {profileSnapshot && densityMode !== "compact" && (
+            <div>
+              <div className={headingBorder}>Profile</div>
+              <p>{profileSnapshot}</p>
+            </div>
+          )}
+
           {/* Achievements / Hackathon */}
           {data.achievements.length > 0 && (
             <div>
               <div className={headingBorder}>Hackathon</div>
-              {data.achievements.map((a, i) => (
+              {data.achievements.slice(0, densityMode === "expanded" ? 6 : 4).map((a, i) => (
                 <div key={i} className="mb-1">
                   <p className="font-semibold">{a.title}</p>
                   {a.award && <p className="font-bold text-indigo-700">{a.award}</p>}
@@ -168,7 +243,7 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
             <div>
               <div className={headingBorder}>Certificates</div>
               <ul className="space-y-0.5">
-                {data.certificates.map((c, i) => (
+                {data.certificates.slice(0, certificateLimit).map((c, i) => (
                   <li key={i} className="flex items-center gap-1">
                     <span>•</span>
                     <span>{c.name}</span>
@@ -195,71 +270,12 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
             </div>
           )}
 
-          {/* Contact Details */}
-          <div>
-            <div className={headingBorder}>Contact Details</div>
-            <div className="space-y-1">
-              {data.contacts.phone && <p>☏ {data.contacts.phone}</p>}
-              {data.contacts.email && <p>✉ {data.contacts.email}</p>}
-              {data.contacts.github && (
-                <p className="flex items-center gap-1">
-                  <FaGithub className="flex-shrink-0 text-gray-800" />
-                  <a
-                    href={
-                      data.contacts.github.startsWith("http")
-                        ? data.contacts.github
-                        : `https://${data.contacts.github}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-700 underline break-all"
-                  >
-                    {data.contacts.github.replace(/^https?:\/\//, "")}
-                  </a>
-                </p>
-              )}
-              {data.contacts.linkedin && (
-                <p className="flex items-center gap-1">
-                  <FaLinkedin className="flex-shrink-0 text-[#0A66C2]" />
-                  <a
-                    href={
-                      data.contacts.linkedin.startsWith("http")
-                        ? data.contacts.linkedin
-                        : `https://${data.contacts.linkedin}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#0A66C2] underline break-all"
-                  >
-                    {data.contacts.linkedin.replace(/^https?:\/\//, "")}
-                  </a>
-                </p>
-              )}
-              {data.contacts.portfolio && (
-                <p className="flex items-center gap-1">
-                  <ExternalLink size={10} className="flex-shrink-0 text-indigo-600" />
-                  <a
-                    href={
-                      data.contacts.portfolio.startsWith("http")
-                        ? data.contacts.portfolio
-                        : `https://${data.contacts.portfolio}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-700 underline break-all"
-                  >
-                    {data.contacts.portfolio.replace(/^https?:\/\//, "")}
-                  </a>
-                </p>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* RIGHT column — Projects */}
         <div className="flex-1 space-y-2">
-          <div className={headingBorder}>Projects</div>
-          {Object.entries(grouped).map(([cat, projs]) => (
+          {featured.length > 0 && <div className={headingBorder}>Experience & Projects</div>}
+          {Object.entries(groupedPrimary).map(([cat, projs]) => (
             <div key={cat} className="mb-2">
               {/* Category heading */}
               <p className={`font-extrabold uppercase text-center mb-1 ${compact ? "text-[8px]" : "text-[9px]"}`}>
@@ -299,6 +315,55 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
               ))}
             </div>
           ))}
+
+          {secondary.length > 0 && (
+            <>
+              <div className={headingBorder}>Additional Projects</div>
+              {Object.entries(groupedSecondary).map(([cat, projs]) => (
+                <div key={cat} className="mb-2">
+                  <p className={`font-extrabold uppercase text-center mb-1 ${compact ? "text-[8px]" : "text-[9px]"}`}>
+                    {cat}
+                  </p>
+                  {projs.map((p, i) => (
+                    <div key={i} className="mb-1.5">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <p className="font-bold uppercase">{p.name}</p>
+                        {p.dateRange && <p className="text-gray-500 text-[8px] flex-shrink-0">[{p.dateRange}]</p>}
+                      </div>
+                      <ul className="space-y-0.5">
+                        {p.bullets.slice(0, secondaryBulletLimit).map((b, j) => (
+                          <li key={j} className="flex gap-1">
+                            <span className="flex-shrink-0">•</span>
+                            <span>{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </>
+          )}
+
+          {lowContentMode && (data.certificates.length > 0 || data.achievements.length > 0) && (
+            <>
+              <div className={headingBorder}>Certifications & Achievements</div>
+              <ul className="space-y-0.5">
+                {data.certificates.slice(0, 8).map((c, i) => (
+                  <li key={`cert-${i}`} className="flex gap-1">
+                    <span className="flex-shrink-0">•</span>
+                    <span>{c.name}</span>
+                  </li>
+                ))}
+                {data.achievements.slice(0, 6).map((a, i) => (
+                  <li key={`ach-${i}`} className="flex gap-1">
+                    <span className="flex-shrink-0">•</span>
+                    <span>{a.title}{a.award ? ` - ${a.award}` : ""}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -308,22 +373,30 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
 // ── Print HTML generator ──────────────────────────────────────────────────
 
 function buildPrintHTML(data: ResumeData, atsScore: number): string {
-  const priorityOrder: Record<string, number> = {
-    internship: 0,
-    freelancing: 1,
-    fullstack: 2,
-    frontend: 3,
-    backend: 3,
-    opensource: 4,
-    other: 5,
-  };
-  const projects = [...data.projects].sort((a, b) => (priorityOrder[a.type] ?? 5) - (priorityOrder[b.type] ?? 5));
+  const densityMode = pickDensityMode(data, false);
+  const profileSnapshot = buildProfileSnapshot(data);
+  const { featured, secondary } = prepareProjects(data.projects);
+  const totalProjectCount = featured.length + secondary.length;
+  const lowContentMode = totalProjectCount <= 4;
 
-  const grouped: Record<string, typeof projects> = {};
-  for (const p of projects) {
+  const groupedPrimary: Record<string, typeof featured> = {};
+  const groupedSecondary: Record<string, typeof secondary> = {};
+
+  const featuredLimit = densityMode === "expanded" ? 10 : 7;
+  const secondaryLimit = densityMode === "expanded" ? 10 : 6;
+  const secondaryBulletLimit = densityMode === "expanded" ? 3 : 2;
+  const certificateLimit = densityMode === "expanded" ? 12 : 8;
+
+  for (const p of featured.slice(0, featuredLimit)) {
     const cat = p.category || p.type.toUpperCase();
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(p);
+    if (!groupedPrimary[cat]) groupedPrimary[cat] = [];
+    groupedPrimary[cat].push(p);
+  }
+
+  for (const p of secondary.slice(0, secondaryLimit)) {
+    const cat = p.category || "OTHER PROJECTS";
+    if (!groupedSecondary[cat]) groupedSecondary[cat] = [];
+    groupedSecondary[cat].push(p);
   }
 
   const esc = (s?: string) => (s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -338,7 +411,7 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
     data.skills.languages && `<p><strong>Languages:</strong> ${esc(data.skills.languages)}</p>`,
   ].filter(Boolean).join("");
 
-  const projectsHTML = Object.entries(grouped).map(([cat, projs]) => `
+  const primaryHTML = Object.entries(groupedPrimary).map(([cat, projs]) => `
     <div class="proj-cat">
       <p class="proj-cat-title">${esc(cat)}</p>
       ${projs.map(p => `
@@ -361,6 +434,31 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
     </div>
   `).join("");
 
+  const secondaryHTML = Object.entries(groupedSecondary).map(([cat, projs]) => `
+    <div class="proj-cat">
+      <p class="proj-cat-title">${esc(cat)}</p>
+      ${projs.map(p => `
+        <div class="proj-item">
+          <div class="proj-header">
+            <span class="proj-name">${esc(p.name)}</span>
+            ${p.dateRange ? `<span class="proj-date">[${esc(p.dateRange)}]</span>` : ""}
+          </div>
+          <ul>${p.bullets.slice(0, secondaryBulletLimit).map(b => `<li>${esc(b)}</li>`).join("")}</ul>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+
+  const certAchieveHTML = lowContentMode && (data.certificates.length > 0 || data.achievements.length > 0)
+    ? `
+      <div class="section-title">Certifications & Achievements</div>
+      <ul>
+        ${data.certificates.slice(0, 8).map(c => `<li>${esc(c.name)}</li>`).join("")}
+        ${data.achievements.slice(0, 6).map(a => `<li>${esc(a.title || "")}${a.award ? ` - ${esc(a.award)}` : ""}</li>`).join("")}
+      </ul>
+    `
+    : "";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -372,10 +470,9 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
     h1 { font-size:18pt; font-weight:900; text-transform:uppercase; letter-spacing:0.03em; }
     .subtitle { font-size:8pt; text-transform:uppercase; letter-spacing:0.08em; color:#555; margin:1pt 0; }
     .contact-bar { font-size:7.5pt; color:#444; display:flex; flex-wrap:wrap; gap:6pt; margin-top:3pt; }
-    .contact-bar a { color:#3730a3; text-decoration:underline; }
     hr { border:none; border-top:1px solid #999; margin:4pt 0; }
     .body { display:flex; gap:14pt; margin-top:4pt; }
-    .left { width:36%; flex-shrink:0; }
+    .left { width:34%; flex-shrink:0; }
     .right { flex:1; }
     .section-title { font-size:9pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.04em; border-bottom:2px solid #111; padding-bottom:1pt; margin-bottom:3pt; margin-top:8pt; }
     .section-title:first-child { margin-top:0; }
@@ -405,16 +502,19 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
   <div class="contact-bar">
     ${data.contacts.email ? `<span>✉ ${esc(data.contacts.email)}</span>` : ""}
     ${data.contacts.phone ? `<span>☏ ${esc(data.contacts.phone)}</span>` : ""}
-    ${data.contacts.github ? `<a href="${esc(data.contacts.github.startsWith("http") ? data.contacts.github : "https://" + data.contacts.github)}">GitHub</a>` : ""}
-    ${data.contacts.linkedin ? `<a href="${esc(data.contacts.linkedin.startsWith("http") ? data.contacts.linkedin : "https://" + data.contacts.linkedin)}">LinkedIn</a>` : ""}
-    ${data.contacts.portfolio ? `<a href="${esc(data.contacts.portfolio.startsWith("http") ? data.contacts.portfolio : "https://" + data.contacts.portfolio)}">Portfolio</a>` : ""}
+    ${data.contacts.github ? `<span>⌥ ${esc(data.contacts.github)}</span>` : ""}
+    ${data.contacts.linkedin ? `<span>in ${esc(data.contacts.linkedin)}</span>` : ""}
+    ${data.contacts.portfolio ? `<span>⊕ ${esc(data.contacts.portfolio)}</span>` : ""}
   </div>
   <hr>
   <div class="body">
     <div class="left">
+      ${profileSnapshot ? `
+        <div class="section-title">Profile</div>
+        <p>${esc(profileSnapshot)}</p>` : ""}
       ${data.achievements.length > 0 ? `
         <div class="section-title">Hackathon</div>
-        ${data.achievements.map(a => `
+        ${data.achievements.slice(0, densityMode === "expanded" ? 6 : 4).map(a => `
           <div style="margin-bottom:4pt">
             <p class="ach-title">${esc(a.title)}</p>
             ${a.award ? `<p class="ach-award">${esc(a.award)}</p>` : ""}
@@ -423,7 +523,7 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
       ${skillRows}
       ${data.certificates.length > 0 ? `
         <div class="section-title">Certificates</div>
-        ${data.certificates.map(c => `<p class="cert-item">• ${esc(c.name)}</p>`).join("")}` : ""}
+        ${data.certificates.slice(0, certificateLimit).map(c => `<p class="cert-item">• ${esc(c.name)}</p>`).join("")}` : ""}
       ${data.education.length > 0 ? `
         <div class="section-title">Education</div>
         ${data.education.map(e => `
@@ -434,16 +534,13 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
             ${e.year ? `<p style="color:#555">${esc(e.year)}</p>` : ""}
             ${e.percentage ? `<p>Percentage: ${esc(e.percentage)}</p>` : ""}
           </div>`).join("")}` : ""}
-      <div class="section-title">Contact Details</div>
-      ${data.contacts.phone ? `<p>☏ ${esc(data.contacts.phone)}</p>` : ""}
-      ${data.contacts.email ? `<p>✉ ${esc(data.contacts.email)}</p>` : ""}
-      ${data.contacts.github ? `<p><strong>GitHub:</strong> <a href="${esc(data.contacts.github.startsWith("http") ? data.contacts.github : "https://" + data.contacts.github)}">${esc(data.contacts.github.replace(/^https?:\/\//, ""))}</a></p>` : ""}
-      ${data.contacts.linkedin ? `<p><strong>LinkedIn:</strong> <a href="${esc(data.contacts.linkedin.startsWith("http") ? data.contacts.linkedin : "https://" + data.contacts.linkedin)}">${esc(data.contacts.linkedin.replace(/^https?:\/\//, ""))}</a></p>` : ""}
-      ${data.contacts.portfolio ? `<p><strong>Portfolio:</strong> <a href="${esc(data.contacts.portfolio.startsWith("http") ? data.contacts.portfolio : "https://" + data.contacts.portfolio)}">${esc(data.contacts.portfolio.replace(/^https?:\/\//, ""))}</a></p>` : ""}
     </div>
     <div class="right">
-      <div class="section-title">Projects</div>
-      ${projectsHTML}
+      ${featured.length > 0 ? `<div class="section-title">Experience & Projects</div>` : ""}
+      ${primaryHTML}
+      ${secondary.length > 0 ? `<div class="section-title">Additional Projects</div>` : ""}
+      ${secondaryHTML}
+      ${certAchieveHTML}
     </div>
   </div>
 </body>
@@ -455,8 +552,44 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
 export default function GeneratedResumeCard({ result }: { result: BuilderResult }) {
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const previewViewportRef = useRef<HTMLDivElement>(null);
 
   const data = result.resumeData;
+  const printHtml = useMemo(() => {
+    if (!data) return "";
+    return buildPrintHTML(data, result.atsScore);
+  }, [data, result.atsScore]);
+
+  useEffect(() => {
+    if (!showPreview) return;
+    const el = previewViewportRef.current;
+    if (!el) return;
+
+    const PAGE_WIDTH = 794;
+    const PAGE_HEIGHT = 1123;
+    const SAFE_PAD_X = 24;
+    const SAFE_PAD_Y = 24;
+
+    const updateScale = () => {
+      const rect = el.getBoundingClientRect();
+      const next = Math.min(
+        (rect.width - SAFE_PAD_X) / PAGE_WIDTH,
+        (rect.height - SAFE_PAD_Y) / PAGE_HEIGHT,
+        1
+      );
+      setPreviewScale((prev) => (Math.abs(prev - next) > 0.01 ? next : prev));
+    };
+
+    const ro = new ResizeObserver(() => updateScale());
+    ro.observe(el);
+    const id = window.requestAnimationFrame(updateScale);
+
+    return () => {
+      ro.disconnect();
+      window.cancelAnimationFrame(id);
+    };
+  }, [showPreview]);
 
   function copyResume() {
     if (!data) return;
@@ -474,11 +607,10 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
   }
 
   function downloadPDF() {
-    if (!data) return;
-    const html = buildPrintHTML(data, result.atsScore);
+    if (!printHtml) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(html);
+    win.document.write(printHtml);
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 600);
@@ -504,11 +636,6 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
       {/* ATS Score + Keywords */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col items-center justify-center gap-3">
-          {result.jobAlignment && (
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-100 text-violet-800 border border-violet-200">
-              Projects: {result.jobAlignment}
-            </span>
-          )}
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">ATS Score</p>
           <svg width="120" height="120" viewBox="0 0 120 120">
             <circle cx="60" cy="60" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="10" />
@@ -581,7 +708,7 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
         </div>
 
         {/* Inline compact preview */}
-        <div className="p-6 overflow-auto max-h-[500px]">
+        <div className="p-6 overflow-hidden">
           <ResumeRenderer data={data} compact />
         </div>
       </div>
@@ -609,16 +736,22 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
             </div>
 
             {/* A4 page wrapper */}
-            <div className="overflow-auto flex-1 bg-slate-200 p-8 flex justify-center">
+            <div ref={previewViewportRef} className="overflow-hidden flex-1 bg-slate-200 p-4 sm:p-6 flex justify-center items-start">
               <div
                 className="bg-white shadow-xl"
                 style={{
                   width: "794px",
-                  minHeight: "1123px",
-                  padding: "48px 52px",
+                  height: "1123px",
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: "top center",
                 }}
               >
-                <ResumeRenderer data={data} />
+                <iframe
+                  title="A4 Resume Preview"
+                  srcDoc={printHtml}
+                  className="w-full h-full border-0"
+                  scrolling="no"
+                />
               </div>
             </div>
           </div>

@@ -9,7 +9,6 @@ import {
   Zap,
   Sparkles,
   ArrowRight,
-  FileText,
   Link2,
   Briefcase,
   Palette,
@@ -48,8 +47,8 @@ const BUILDER_STEPS = [
   {
     num: "03",
     icon: Briefcase,
-    title: "Add Job Description",
-    desc: "Paste the job description you're applying for. Our AI matches your real skills & projects to the job requirements for maximum keyword relevance.",
+    title: "Add Job Description (Optional)",
+    desc: "Paste the job description for highly targeted matching, or skip it to generate an overall placement-ready resume from your portfolio.",
     color: "emerald",
   },
 ];
@@ -144,8 +143,8 @@ export default function BuilderPage() {
             <span className="gradient-text">in One Click</span>
           </h1>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto mb-8 leading-relaxed animate-fade-in delay-200">
-            Paste your portfolio link + job description → our AI reads your real projects,
-            matches keywords, and generates a tailored, ATS-optimized resume in seconds.
+            Paste your portfolio link with or without a job description. Our AI reads your real projects,
+            matches keywords when JD is provided, and generates an ATS-optimized resume in seconds.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap animate-fade-in delay-300">
             <a

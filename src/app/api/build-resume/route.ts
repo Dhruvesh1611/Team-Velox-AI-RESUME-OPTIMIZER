@@ -1,55 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callAI } from "../../../services/ai.provider";
 
-const GITHUB_LIST_LIMIT = 28;
-const GITHUB_DEEP_DETAIL_LIMIT = 8;
-const README_CHAR_LIMIT = 320;
-
-type JobTrack = "frontend" | "backend" | "fullstack" | "general";
-const PAGE_TEXT_LIMIT = 1800;
-const JSON_SNIPPET_LIMIT = 500;
-const JSON_SNIPPET_COUNT = 3;
-const IMPORTANT_LINK_LIMIT = 10;
-const INTERNAL_PAGE_LIMIT = 5;
-const PORTFOLIO_CONTENT_LIMIT = 9000;
-
-type ResumeData = {
+type ResumeProjectPayload = {
   name: string;
-  title: string;
-  contacts: {
-    email: string;
-    phone: string;
-    github: string;
-    linkedin: string;
-    portfolio: string;
+  type: string;
+  category?: string;
+  dateRange?: string;
+  description?: string;
+  bullets: string[];
+  technologies?: string;
+  links?: { github?: string; live?: string; demo?: string };
+};
+
+type ResumeDataPayload = {
+  name?: string;
+  title?: string;
+  contacts?: {
+    email?: string;
+    phone?: string;
+    github?: string;
+    linkedin?: string;
+    portfolio?: string;
   };
-  skills: {
-    frontend: string;
-    backend: string;
-    database: string;
-    tools: string;
-    languages: string;
-    uiux: string;
-    cloud: string;
-  };
-  achievements: Array<{ title: string; award: string; link: string }>;
-  certificates: Array<{ name: string; link: string }>;
-  projects: Array<{
-    name: string;
-    type: string;
-    category: string;
-    dateRange: string;
-    description: string;
-    bullets: string[];
-    technologies: string;
-    links: { github: string; live: string; demo: string };
-  }>;
-  education: Array<{
-    degree: string;
-    institution: string;
-    gpa: string;
-    year: string;
-    percentage: string;
+  skills?: Record<string, string>;
+  achievements?: Array<{ title?: string; award?: string; link?: string }>;
+  certificates?: Array<{ name?: string; link?: string }>;
+  projects?: ResumeProjectPayload[];
+  education?: Array<{
+    degree?: string;
+    institution?: string;
+    gpa?: string;
+    year?: string;
+    percentage?: string;
   }>;
 };
 
@@ -122,41 +104,42 @@ CRITICAL RULES:
 2. Add measurable outcomes: "Reduced load time by 40%", "Built for 1000+ users", "Improved score by 30pts"
 3. Mirror job description keywords naturally
 4. Use ONLY real data from portfolio — never fabricate names, dates, or companies
-5. Page-filling rules:
-   - If few projects: write 4-5 detailed bullets per project expanding what was built and WHY
-   - If many projects: write 3-4 strong bullets for top projects, 2 for others
-6. USE ALL SCRAPED SOURCES TOGETHER:
-   - combine GitHub + portfolio website + LinkedIn URL into one resume
-   - do not ignore GitHub repos when a portfolio site is also present
-   - LinkedIn is mainly for contacts unless the scraped meta clearly exposes headline text
-7. Prefer CONCRETE project/repo names over generic labels:
-   - good: "Jobmentum", "MernFolio", "Campus-Hub"
-   - bad: "Portfolio Website", "Task Repository", "Experimental Project"
-   - if a generic portfolio card and a concrete GitHub repo describe the same work, use the concrete repo/project name
-8. When evidence exists for many projects, include at least 5 distinct projects in resumeData.projects. Do not collapse multiple repos into 2-3 generic entries.
-
-PROJECT type MUST be one of: internship | freelancing | fullstack | frontend | backend | opensource | other
-Use "frontend" for UI/React/CSS-heavy work; "backend" for APIs/services/data; "fullstack" when both are substantial.
-
-JOB-DRIVEN PROJECT SELECTION (from JOB ALIGNMENT line below):
-- frontend: Include mostly frontend + fullstack projects from scraped data; omit or minimize pure backend-only repos.
-- backend: Include mostly backend + fullstack projects; omit or minimize pure frontend-only landing pages.
-- fullstack: Balance frontend, backend, and fullstack projects.
-- general: Use normal priority below.
+5. One-page density rules (no empty-looking layout):
+   - Keep only the most relevant content for a single page resume
+   - Omit empty sections entirely (do not output placeholder or dummy lines)
+   - Prioritize quality over quantity; avoid repeating similar clone/practice items
+6. Relevance rules:
+   - Map each portfolio item to required job skills from the JD
+   - For highly relevant items: 3-4 concise, impact bullets
+   - For less relevant items: 1-2 concise bullets max
+   - Mention only verified technologies/links present in portfolio data
+7. Real-world resume quality rules:
+  - Output must look like a real placement-ready resume, not a toy draft
+  - Prefer concise but complete sections with practical recruiter language
+  - If portfolio contains multiple projects, include multiple projects (not just one)
+  - If certificates/education/contact are present in source, include them
+  - Keep all details truthful and source-backed
 
 PROJECT PRIORITY (sort output in this order, most detail for high priority):
-  1. type=internship → 4-5 bullets, all links, full description
-  2. type=freelancing → 4-5 bullets, all links, full description
+  1. type=internship → 3-4 bullets, all links, full description
+  2. type=freelancing → 3-4 bullets, all links, full description
   3. type=fullstack → 3-4 bullets
-  4. type=frontend or type=backend → 3-4 bullets when they match JOB ALIGNMENT
-  5. type=opensource → 2-3 bullets
-  6. type=other → 2 bullets (CSS clones, practice, API integrations)
+  4. type=opensource → 2-3 bullets
+  5. type=other → 1-2 bullets (CSS clones, practice, API integrations)
 
-SELECTION RULES:
-- Deduplicate obvious duplicates across sources, but keep distinct projects separate.
-- Prefer entries that have concrete technologies, repo URLs, live URLs, README summaries, or portfolio descriptions.
-- If GitHub repos provide better names/details than the website, use the GitHub-derived names/details.
-- Preserve every user-supplied contact URL exactly in contacts.
+CLASSIFICATION LOGIC (important):
+  - Put paid client or production client work under type=freelancing
+  - Put team/company/intern projects under type=internship
+  - Put contributions to public repos under type=opensource
+  - Put mini clones/practice work under type=other
+  - If unsure, infer from README text, repo topics, and naming patterns conservatively
+
+MINIMUM DEPTH RULES (when source data is available):
+  - projects: include 4 to 8 projects
+  - top relevant projects: 3 to 4 bullets each
+  - lower relevance projects: 1 to 2 bullets each
+  - certificates: include up to 8 verified certificates
+  - skills: include all discovered categories (frontend/backend/database/tools/languages/cloud/uiux)
 
 RETURN ONLY this exact JSON (no markdown fences, no commentary):
 {
@@ -188,8 +171,8 @@ RETURN ONLY this exact JSON (no markdown fences, no commentary):
     "projects": [
       {
         "name": "Project Name",
-        "type": "fullstack",
-        "category": "FULLSTACK PROJECT",
+        "type": "internship",
+        "category": "FREELANCING PAID-PROJECT",
         "dateRange": "Sep 2025 - Dec 2025",
         "description": "One-sentence project summary for ATS",
         "bullets": [
@@ -213,151 +196,16 @@ RETURN ONLY this exact JSON (no markdown fences, no commentary):
   "atsScore": 0,
   "matchedKeywords": [],
   "missingKeywords": [],
-  "tip": ""
+  "tip": "",
+  "layoutHints": {
+    "primaryFirst": ["internship", "freelancing", "opensource", "fullstack", "other"],
+    "onePage": true
+  }
 }`;
-
-// ─── Job track + GitHub repo alignment ─────────────────────────────────────
-
-function inferJobTrack(jobDescription: string): JobTrack {
-  const t = jobDescription.toLowerCase();
-  const fs =
-    /\b(full[\s-]?stack|fullstack|mern|mean|mevn|t-?shaped)\b/.test(t) ||
-    (/\bfrontend\b|\bfront[\s-]?end\b/.test(t) && /\bbackend\b|\bback[\s-]?end\b/.test(t));
-
-  const fe =
-    /\b(frontend|front[\s-]?end|react|vue\.?js|angular|svelte|next\.?js|nuxt|css|sass|tailwind|ui\/ux|user interface|web designer|typescript\s*\(?\s*for\s+ui)\b/.test(
-      t
-    );
-  const be =
-    /\b(backend|back[\s-]?end|api\s+developer|microservices|django|flask|fastapi|spring\s+boot|express\.?js|graphql\s+api|kafka|kubernetes|systems?\s+engineer|devops\s+engineer)\b/.test(
-      t
-    );
-
-  if (fs) return "fullstack";
-  if (fe && !be) return "frontend";
-  if (be && !fe) return "backend";
-  if (fe && be) return "fullstack";
-  return "general";
-}
-
-type GitHubRepoListItem = {
-  name: string;
-  description?: string;
-  language?: string;
-  stargazers_count?: number;
-  forks_count?: number;
-  topics?: string[];
-  homepage?: string;
-  html_url?: string;
-  updated_at?: string;
-};
-
-function repoActivityScore(r: GitHubRepoListItem): number {
-  return (
-    (r.stargazers_count ?? 0) * 3 +
-    (r.forks_count ?? 0) * 2 +
-    new Date(r.updated_at ?? 0).getTime() / 1e12
-  );
-}
-
-function quickClassifyRepo(repo: GitHubRepoListItem): "frontend" | "backend" | "fullstack" | "other" {
-  const blob = [
-    repo.name ?? "",
-    repo.description ?? "",
-    repo.language ?? "",
-    ...(Array.isArray(repo.topics) ? repo.topics : []),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  const feHints =
-    /react|vue|angular|svelte|next\.?js|nuxt|gatsby|tailwind|webpack|vite|framer|css|html5|sass|scss|redux|zustand|chakra|mui|material-?ui|shadcn|frontend|ui\b|component library|three\.js|d3\.js/.test(
-      blob
-    );
-  const beHints =
-    /django|flask|fastapi|spring|laravel|rails|express|nestjs|graphql|microservice|kafka|redis|postgres|mongodb|prisma|sequelize|typeorm|kubernetes|terraform|aws lambda|serverless|grpc|rest api|backend/.test(
-      blob
-    );
-
-  const lang = (repo.language ?? "").trim();
-  const feLang = /^(JavaScript|TypeScript|HTML|CSS|Vue)$/i.test(lang);
-  const beLang = /^(Python|Go|Java|Rust|PHP|Ruby|C\+\+|C#|Kotlin|Scala|Swift)$/i.test(lang);
-
-  if (feHints && beHints) return "fullstack";
-  if (feHints) return feLang || !beLang ? "frontend" : "fullstack";
-  if (beHints) return "backend";
-  if (feLang && !beLang) return "frontend";
-  if (beLang && !feLang) return "backend";
-  if (lang && /TypeScript|JavaScript/i.test(lang) && !beHints && !feHints) return "other";
-  return "other";
-}
-
-function selectReposForTrack(
-  repos: GitHubRepoListItem[],
-  track: JobTrack
-): GitHubRepoListItem[] {
-  const sorted = [...repos].sort((a, b) => repoActivityScore(b) - repoActivityScore(a));
-  const classified = sorted.map((r) => ({
-    repo: r,
-    segment: quickClassifyRepo(r),
-  }));
-
-  const matchesTrack = (segment: string) => {
-    if (track === "general") return true;
-    if (track === "fullstack") return true;
-    if (track === "frontend") return segment === "frontend" || segment === "fullstack";
-    if (track === "backend") return segment === "backend" || segment === "fullstack";
-    return true;
-  };
-
-  const primary = classified.filter((c) => matchesTrack(c.segment)).map((c) => c.repo);
-  let picked = primary.slice(0, GITHUB_DEEP_DETAIL_LIMIT);
-
-  if (picked.length < 3) {
-    const primarySet = new Set(picked.map((p) => p.name));
-    const fallback = sorted.filter((r) => !primarySet.has(r.name));
-    picked = [...picked, ...fallback].slice(0, GITHUB_DEEP_DETAIL_LIMIT);
-  }
-
-  return picked;
-}
-
-function parseGithubUsername(input: string): string | null {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-  try {
-    const u = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
-    if (u.hostname.replace(/^www\./, "") !== "github.com") return null;
-    const parts = u.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
-    if (parts.length === 0) return null;
-    const first = parts[0];
-    const reserved = new Set([
-      "settings",
-      "topics",
-      "explore",
-      "marketplace",
-      "orgs",
-      "sponsors",
-      "login",
-      "signup",
-    ]);
-    if (reserved.has(first.toLowerCase())) return null;
-    return first;
-  } catch {
-    return null;
-  }
-}
-
-function normalizeHttpUrl(raw: string): string {
-  const t = raw.trim();
-  if (!t) return t;
-  if (/^https?:\/\//i.test(t)) return t;
-  return `https://${t}`;
-}
 
 // ─── Deep GitHub Scraper ──────────────────────────────────────────────────
 
-async function deepScrapeGitHub(username: string, jobTrack: JobTrack): Promise<string> {
+async function deepScrapeGitHub(username: string): Promise<string> {
   const headers = {
     Accept: "application/vnd.github.v3+json",
     "User-Agent": "HireLens-ResumeBuilder/1.0",
@@ -369,31 +217,45 @@ async function deepScrapeGitHub(username: string, jobTrack: JobTrack): Promise<s
     if (!userRes.ok) throw new Error(`GitHub user not found: ${username}`);
     const user = await userRes.json();
 
-    // 2. Fetch repos (single page), rank, then filter by job description track
-    const reposRes = await fetch(
-      `https://api.github.com/users/${username}/repos?sort=updated&per_page=30&type=public`,
-      { headers }
+    // 2. Fetch repos across pages for broader, deeper analysis.
+    const perPage = 30;
+    const pageCount = 3; // up to 90 repos
+    const repoPages = await Promise.all(
+      Array.from({ length: pageCount }, (_, idx) =>
+        fetch(
+          `https://api.github.com/users/${username}/repos?sort=updated&per_page=${perPage}&type=public&page=${idx + 1}`,
+          { headers }
+        )
+      )
     );
-    const allRepos = reposRes.ok ? await reposRes.json() : [];
 
+    const pageJson = await Promise.all(
+      repoPages.map(async (res) => (res.ok ? res.json() : []))
+    );
+    const allRepos = pageJson.flat();
+
+    // 3. Rank and keep strongest repos for detailed scrape.
     const sortedRepos = Array.isArray(allRepos)
-      ? [...allRepos].sort((a, b) => repoActivityScore(b) - repoActivityScore(a)).slice(0, GITHUB_LIST_LIMIT)
+      ? [...allRepos].sort((a, b) => {
+          const score = (r: { stargazers_count: number; forks_count: number; updated_at: string }) =>
+            r.stargazers_count * 3 + r.forks_count * 2 + (new Date(r.updated_at).getTime() / 1e12);
+          return score(b) - score(a);
+        }).slice(0, 15)
       : [];
 
-    const selectedRepos = selectReposForTrack(sortedRepos, jobTrack);
-
-    const trackNote =
-      jobTrack === "frontend"
-        ? "Repos below were prioritized for FRONTEND / FULL-STACK fit vs the job description."
-        : jobTrack === "backend"
-          ? "Repos below were prioritized for BACKEND / FULL-STACK fit vs the job description."
-          : jobTrack === "fullstack"
-            ? "Repos emphasize full-stack or mixed stacks vs the job description."
-            : "Repos are ranked by activity; no strict FE/BE filter.";
-
-    // 3. Deep-fetch each selected repo: README + languages
+    // 4. Deep-fetch each selected repo: README + languages.
     const repoDetails = await Promise.all(
-      selectedRepos.map(async (repo: GitHubRepoListItem) => {
+      sortedRepos.map(async (repo: {
+        name: string;
+        description?: string;
+        language?: string;
+        stargazers_count?: number;
+        forks_count?: number;
+        topics?: string[];
+        homepage?: string;
+        html_url?: string;
+        updated_at?: string;
+      }) => {
         const [readmeRes, langsRes] = await Promise.all([
           fetch(`https://api.github.com/repos/${username}/${repo.name}/readme`, {
             headers: { ...headers, Accept: "application/vnd.github.v3.raw" },
@@ -404,7 +266,7 @@ async function deepScrapeGitHub(username: string, jobTrack: JobTrack): Promise<s
         let readme = "";
         if (readmeRes.ok) {
           const raw = await readmeRes.text();
-          // Keep README context short enough for the request budget.
+          // Keep a compact but informative README summary.
           readme = raw
             .replace(/!\[.*?\]\(.*?\)/g, "") // remove images
             .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links → text
@@ -413,7 +275,7 @@ async function deepScrapeGitHub(username: string, jobTrack: JobTrack): Promise<s
             .replace(/`{1,3}[^`]*`{1,3}/g, "") // remove code
             .replace(/\n{3,}/g, "\n\n")
             .trim()
-            .slice(0, README_CHAR_LIMIT);
+            .slice(0, 900);
         }
 
         const langs = langsRes.ok ? Object.keys(await langsRes.json()).join(", ") : repo.language ?? "";
@@ -433,17 +295,14 @@ async function deepScrapeGitHub(username: string, jobTrack: JobTrack): Promise<s
       })
     );
 
-    // 4. Format the full portfolio content
+    const remainderRepos = Array.isArray(allRepos)
+      ? [...allRepos].filter((r) => !sortedRepos.some((s) => s.name === r.name)).slice(0, 24)
+      : [];
+
+    // 5. Format the full portfolio content
     const repoSections = repoDetails.map((r) => {
-      const seg = quickClassifyRepo({
-        name: r.name,
-        description: r.description,
-        language: r.languages.split(",")[0]?.trim(),
-        topics: r.topics ? r.topics.split(/,\s*/) : [],
-      });
       const lines = [
         `PROJECT: ${r.name}`,
-        `  HireLens segment: ${seg} (use for job alignment)`,
         `  URL: ${r.url}`,
         r.homepage ? `  Live: ${r.homepage}` : "",
         `  Description: ${r.description || "No description"}`,
@@ -468,20 +327,72 @@ Total Public Repos: ${user.public_repos}
 Followers: ${user.followers} | Following: ${user.following}
 GitHub URL: https://github.com/${username}
 
-JOB ALIGNMENT NOTE: ${trackNote}
-
-TOP REPOSITORIES (Detailed, filtered for this role where possible)
+TOP REPOSITORIES (Detailed)
 ══════════════════════════════════════════
 ${repoSections}
+
+OTHER REPOSITORIES (Context List)
+══════════════════════════════════════════
+${remainderRepos
+  .map((r: { name: string; description?: string; language?: string; html_url?: string }) =>
+    `- ${r.name} | ${r.language || "N/A"} | ${r.description || "No description"} | ${r.html_url || ""}`
+  )
+  .join("\n")}
 `.trim();
   } catch (err) {
     throw new Error(err instanceof Error ? err.message : "GitHub scraping failed.");
   }
 }
 
+function extractGitHubUsername(url: string): string | null {
+  try {
+    const parsed = new URL(url.trim());
+    const host = parsed.hostname.toLowerCase();
+    if (host !== "github.com" && host !== "www.github.com") return null;
+
+    const segments = parsed.pathname
+      .split("/")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (segments.length === 0) return null;
+    const candidate = segments[0];
+
+    // Ignore common non-user paths.
+    const blocked = new Set([
+      "features",
+      "topics",
+      "collections",
+      "trending",
+      "events",
+      "marketplace",
+      "pricing",
+      "login",
+      "signup",
+      "about",
+      "explore",
+      "enterprise",
+      "search",
+      "settings",
+      "notifications",
+      "orgs",
+      "organizations",
+      "sponsors",
+      "apps",
+      "pulls",
+      "issues",
+    ]);
+
+    if (blocked.has(candidate.toLowerCase())) return null;
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Generic Portfolio Scraper ────────────────────────────────────────────
 
-async function fetchPortfolioPage(url: string): Promise<string> {
+async function scrapeGenericPortfolio(url: string): Promise<string> {
   const res = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; HireLens-Resume/1.0)" },
     signal: AbortSignal.timeout(10000),
@@ -489,370 +400,565 @@ async function fetchPortfolioPage(url: string): Promise<string> {
 
   if (!res.ok) throw new Error(`Could not fetch portfolio page: ${res.status}`);
 
-  return res.text();
-}
+  const html = await res.text();
 
-function pickMetaValue(html: string, pattern: RegExp): string {
-  return html.match(pattern)?.[1]?.trim() ?? "";
-}
+  const cleanHtmlToText = (rawHtml: string) =>
+    rawHtml
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+      .replace(/<footer[\s\S]*?<\/footer>/gi, "")
+      .replace(/<header[\s\S]*?<\/header>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-function stripHtmlToText(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+  const fetchReadableMirror = async (sourceUrl: string): Promise<string> => {
+    try {
+      const mirrorUrl = `https://r.jina.ai/http://${sourceUrl.replace(/^https?:\/\//i, "")}`;
+      const mirrorRes = await fetch(mirrorUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; HireLens-Resume/1.0)" },
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!mirrorRes.ok) return "";
+      const mirrorText = await mirrorRes.text();
+      return mirrorText.replace(/\s{2,}/g, " ").trim().slice(0, 20000);
+    } catch {
+      return "";
+    }
+  };
 
-function extractJsonSnippets(html: string): string {
-  const scriptBlocks = [
-    ...Array.from(
-      html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
-    ),
-    ...Array.from(
-      html.matchAll(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/gi)
-    ),
-    ...Array.from(
-      html.matchAll(/<script[^>]+type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi)
-    ),
-  ];
+  const extractMeta = (rawHtml: string): string => {
+    const title = rawHtml.match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? "";
+    const desc =
+      rawHtml.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim() ??
+      rawHtml.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)?.[1]?.trim() ??
+      "";
+    const ogTitle =
+      rawHtml.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim() ?? "";
+    const ogDesc =
+      rawHtml.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim() ?? "";
 
-  return scriptBlocks
-    .map(([, raw]) => raw.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    .slice(0, JSON_SNIPPET_COUNT)
-    .map((snippet, index) => `JSON ${index + 1}: ${snippet.slice(0, JSON_SNIPPET_LIMIT)}`)
-    .join("\n");
-}
+    const parts = [
+      title ? `Title: ${title}` : "",
+      desc ? `Description: ${desc}` : "",
+      ogTitle ? `OG Title: ${ogTitle}` : "",
+      ogDesc ? `OG Description: ${ogDesc}` : "",
+    ].filter(Boolean);
 
-function extractImportantLinks(html: string, baseUrl: URL): string[] {
-  const seen = new Set<string>();
-  const links = Array.from(
-    html.matchAll(/href=["']([^"'#\s]+)["']/gi)
-  )
-    .map(([, href]) => href.trim())
-    .filter(Boolean)
+    return parts.join("\n");
+  };
+
+  const collectJsonLdStrings = (value: unknown, out: string[]) => {
+    if (!value) return;
+    if (typeof value === "string") {
+      const txt = value.replace(/\s+/g, " ").trim();
+      if (txt.length >= 5 && txt.length <= 240) out.push(txt);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((v) => collectJsonLdStrings(v, out));
+      return;
+    }
+    if (typeof value === "object") {
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        if (/name|title|description|skills?|technology|jobTitle|worksFor|alumniOf|award|sameAs|url|email|telephone/i.test(k)) {
+          collectJsonLdStrings(v, out);
+        }
+      }
+    }
+  };
+
+  const extractJsonLd = (rawHtml: string): string => {
+    const blocks = Array.from(
+      rawHtml.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
+    );
+    const lines: string[] = [];
+    for (const block of blocks) {
+      const text = (block[1] || "").trim();
+      if (!text) continue;
+      try {
+        const parsed = JSON.parse(text);
+        collectJsonLdStrings(parsed, lines);
+      } catch {
+        // ignore malformed json-ld blocks
+      }
+    }
+    const unique = Array.from(new Set(lines)).filter((s) => s.length >= 8);
+    return unique.slice(0, 120).join("\n");
+  };
+
+  const extractSocialLinks = (rawHtml: string, baseUrl: URL): string[] => {
+    const hrefs = Array.from(rawHtml.matchAll(/href=["']([^"'#]+)["']/gi)).map((m) => m[1]);
+    const links = hrefs
+      .map((href) => {
+        try {
+          return new URL(href, baseUrl).toString();
+        } catch {
+          return "";
+        }
+      })
+      .filter(Boolean)
+      .filter((u) => /github\.com|linkedin\.com|x\.com|twitter\.com|medium\.com|leetcode\.com|behance\.net/i.test(u));
+    return Array.from(new Set(links)).slice(0, 15);
+  };
+
+  const extractReadableTextFromBundle = (bundle: string): string => {
+    const candidates = [
+      ...(bundle.match(/"([^"\\]|\\.){18,}"/g) ?? []),
+      ...(bundle.match(/'([^'\\]|\\.){18,}'/g) ?? []),
+      ...(bundle.match(/`([^`\\]|\\.){18,}`/g) ?? []),
+    ]
+      .map((s) => s.slice(1, -1))
+      .map((s) => s.replace(/\\n|\\r|\\t/g, " "))
+      .map((s) => s.replace(/\\u[0-9a-fA-F]{4}/g, " "))
+      .map((s) => s.replace(/https?:\/\/\S+/g, " "))
+      .map((s) => s.replace(/\s+/g, " ").trim())
+      .filter((s) => /[a-zA-Z]{4,}/.test(s))
+      .filter((s) => /project|skill|experience|about|resume|developer|react|node|javascript|typescript|mongodb|frontend|backend|certificate|education|portfolio/i.test(s))
+      .filter((s) => s.length <= 220);
+
+    const unique = Array.from(new Set(candidates));
+    return unique.slice(0, 140).join("\n");
+  };
+
+  const base = new URL(url);
+  const hrefMatches = Array.from(html.matchAll(/href=["']([^"'#]+)["']/gi)).map((m) => m[1]);
+
+  const relevantUrls = hrefMatches
     .map((href) => {
       try {
-        return new URL(href, baseUrl).toString();
+        return new URL(href, base).toString();
       } catch {
         return "";
       }
     })
-    .filter(Boolean)
-    .filter((href) => {
-      if (seen.has(href)) return false;
-      seen.add(href);
-      return true;
-    });
-
-  return links;
-}
-
-function extractPriorityInternalLinks(html: string, baseUrl: URL): string[] {
-  const keywords = [
-    "project",
-    "work",
-    "experience",
-    "about",
-    "resume",
-    "cv",
-    "skills",
-    "contact",
-    "education",
-    "achievement",
-    "certification",
-  ];
-
-  return extractImportantLinks(html, baseUrl)
-    .filter((href) => {
-      try {
-        const candidate = new URL(href);
-        return candidate.origin === baseUrl.origin;
-      } catch {
-        return false;
-      }
+    .filter((u) => {
+      if (!u) return false;
+      if (!u.startsWith(`${base.protocol}//${base.host}`)) return false;
+      return /(project|work|experience|about|resume|skill|achievement|contact)/i.test(u);
     })
-    .filter((href) => keywords.some((keyword) => href.toLowerCase().includes(keyword)))
-    .slice(0, INTERNAL_PAGE_LIMIT);
-}
+    .slice(0, 8);
 
-function summarizePage(html: string, url: string): string {
-  const title = pickMetaValue(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
-  const description =
-    pickMetaValue(html, /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
-    pickMetaValue(html, /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
-  const ogTitle = pickMetaValue(html, /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
-  const keywords = pickMetaValue(html, /<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i);
-  const jsonSnippets = extractJsonSnippets(html);
-  const importantLinks = extractImportantLinks(html, new URL(url))
-    .filter((href) =>
-      /github\.com|linkedin\.com|mailto:|resume|cv|project|portfolio|vercel\.app|netlify\.app/i.test(href)
-    )
-    .slice(0, IMPORTANT_LINK_LIMIT)
-    .join("\n");
-  const text = stripHtmlToText(html).slice(0, PAGE_TEXT_LIMIT);
-
-  return [
-    `PAGE: ${url}`,
-    title ? `Title: ${title}` : "",
-    ogTitle ? `OpenGraph Title: ${ogTitle}` : "",
-    description ? `Description: ${description}` : "",
-    keywords ? `Keywords: ${keywords}` : "",
-    importantLinks ? `Important Links:\n${importantLinks}` : "",
-    jsonSnippets ? `Hydration/Structured JSON:\n${jsonSnippets}` : "",
-    text ? `Visible Text:\n${text}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-}
-
-async function scrapeGenericPortfolio(url: string): Promise<string> {
-  const rootUrl = new URL(url);
-  const homepageHtml = await fetchPortfolioPage(rootUrl.toString());
-  const internalLinks = extractPriorityInternalLinks(homepageHtml, rootUrl);
-  const pageSummaries = [summarizePage(homepageHtml, rootUrl.toString())];
-
-  for (const link of internalLinks) {
-    try {
-      const html = await fetchPortfolioPage(link);
-      pageSummaries.push(summarizePage(html, link));
-    } catch {
-      // Ignore individual page fetch failures and continue with the rest.
-    }
-  }
-
-  return [
-    `PORTFOLIO WEBSITE CONTENT (${url}):`,
-    `Crawled Pages: ${1 + internalLinks.length}`,
-    ...pageSummaries,
-  ]
-    .filter(Boolean)
-    .join("\n\n")
-    .slice(0, PORTFOLIO_CONTENT_LIMIT);
-}
-
-async function scrapeLinkedInProfileHint(url: string): Promise<string> {
-  const normalized = normalizeHttpUrl(url);
+  const sitemapUrls = (() => new URL("/sitemap.xml", base).toString())();
+  let sitemapRelevantUrls: string[] = [];
   try {
-    const res = await fetch(normalized, {
+    const sitemapRes = await fetch(sitemapUrls, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; HireLens-Resume/1.0)" },
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) {
-      return [
-        "LINKEDIN PROFILE",
-        `URL (use exactly in contacts.linkedin): ${normalized}`,
-        `(Live preview unavailable: HTTP ${res.status}. Do not invent profile details.)`,
-      ].join("\n");
+    if (sitemapRes.ok) {
+      const sitemapXml = await sitemapRes.text();
+      const locs = Array.from(sitemapXml.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)).map((m) => m[1].trim());
+      sitemapRelevantUrls = locs
+        .filter((u) => {
+          try {
+            const parsed = new URL(u);
+            if (parsed.host !== base.host) return false;
+            return /(project|work|experience|about|resume|skill|achievement|contact|education|certificate)/i.test(parsed.pathname);
+          } catch {
+            return false;
+          }
+        })
+        .slice(0, 8);
     }
-    const html = await res.text();
-    const title =
-      pickMetaValue(html, /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
-      pickMetaValue(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
-    const desc =
-      pickMetaValue(html, /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i) ||
-      pickMetaValue(html, /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
-    return [
-      "LINKEDIN PROFILE (public meta only)",
-      `URL (use exactly in contacts.linkedin): ${normalized}`,
-      title ? `Title: ${title}` : "",
-      desc ? `Summary: ${desc}` : "",
-      "Do not fabricate employers, dates, or skills not evidenced elsewhere in scraped data.",
-    ]
-      .filter(Boolean)
-      .join("\n");
   } catch {
-    return [
-      "LINKEDIN PROFILE",
-      `URL (use exactly in contacts.linkedin): ${normalized}`,
-      "(Could not fetch preview; still include URL in resume contacts.)",
-    ].join("\n");
-  }
-}
-
-function isValidOptionalUrl(val: string): boolean {
-  if (!val.trim()) return true;
-  try {
-    const u = new URL(normalizeHttpUrl(val));
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-async function assembleScrapedPortfolioContent(params: {
-  portfolioUrl: string;
-  githubUrl: string;
-  linkedinUrl: string;
-  jobTrack: JobTrack;
-}): Promise<string> {
-  const blocks: string[] = [];
-  const seenGh = new Set<string>();
-
-  const explicitUser = parseGithubUsername(params.githubUrl);
-  if (explicitUser) {
-    blocks.push(await deepScrapeGitHub(explicitUser, params.jobTrack));
-    seenGh.add(explicitUser.toLowerCase());
+    sitemapRelevantUrls = [];
   }
 
-  if (params.portfolioUrl.trim()) {
-    const portfolioNorm = normalizeHttpUrl(params.portfolioUrl.trim());
-    const portfolioUser = parseGithubUsername(portfolioNorm);
-    if (portfolioUser) {
-      if (!seenGh.has(portfolioUser.toLowerCase())) {
-        blocks.push(await deepScrapeGitHub(portfolioUser, params.jobTrack));
-        seenGh.add(portfolioUser.toLowerCase());
+  const commonPaths = [
+    "/about",
+    "/projects",
+    "/work",
+    "/experience",
+    "/resume",
+    "/skills",
+    "/education",
+    "/certificates",
+    "/contact",
+  ]
+    .map((p) => new URL(p, base).toString())
+    .filter((u) => !relevantUrls.includes(u) && !sitemapRelevantUrls.includes(u));
+
+  const candidateSubPages = Array.from(new Set([...relevantUrls, ...sitemapRelevantUrls, ...commonPaths])).slice(0, 10);
+
+  const subPages = await Promise.all(
+    candidateSubPages.map(async (u) => {
+      try {
+        const pageRes = await fetch(u, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; HireLens-Resume/1.0)" },
+          signal: AbortSignal.timeout(7000),
+        });
+        if (!pageRes.ok) return "";
+        const pageHtml = await pageRes.text();
+        const pageText = cleanHtmlToText(pageHtml).slice(0, 2200);
+        const pageJsonLd = extractJsonLd(pageHtml);
+        return `\n\nPAGE: ${u}\n${pageText}${pageJsonLd ? `\nJSON-LD:\n${pageJsonLd}` : ""}`;
+      } catch {
+        return "";
       }
-    } else {
-      blocks.push(await scrapeGenericPortfolio(portfolioNorm));
+    })
+  );
+
+  const homeText = cleanHtmlToText(html).slice(0, 5000);
+  const metaText = extractMeta(html);
+  const jsonLdText = extractJsonLd(html);
+  const socialLinks = extractSocialLinks(html, base);
+
+  const isLikelySpaShell =
+    /<div[^>]*id=["']root["'][^>]*><\/div>/i.test(html) ||
+    homeText.length < 250;
+
+  let bundleInsight = "";
+  const currentCorpusLength = [homeText, metaText, jsonLdText, ...subPages].join("\n").length;
+  if (isLikelySpaShell && currentCorpusLength < 4000) {
+    const scriptUrls = Array.from(
+      html.matchAll(/<script[^>]+src=["']([^"']+\.js[^"']*)["'][^>]*>/gi)
+    )
+      .map((m) => {
+        try {
+          return new URL(m[1], base).toString();
+        } catch {
+          return "";
+        }
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+
+    const scriptContents = await Promise.all(
+      scriptUrls.map(async (scriptUrl) => {
+        try {
+          const scriptRes = await fetch(scriptUrl, {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; HireLens-Resume/1.0)" },
+            signal: AbortSignal.timeout(10000),
+          });
+          if (!scriptRes.ok) return "";
+          const code = await scriptRes.text();
+          return extractReadableTextFromBundle(code);
+        } catch {
+          return "";
+        }
+      })
+    );
+
+    const mergedBundleText = scriptContents.filter(Boolean).join("\n").slice(0, 8000);
+    if (mergedBundleText.trim()) {
+      bundleInsight = `\n\nSPA BUNDLE TEXT (extracted):\n${mergedBundleText}`;
     }
   }
 
-  if (params.linkedinUrl.trim()) {
-    blocks.push(await scrapeLinkedInProfileHint(params.linkedinUrl.trim()));
+  // For JS-heavy websites, try readable mirror extraction before relying on bundle snippets.
+  let mirrorText = "";
+  let mirrorInsight = "";
+  if (isLikelySpaShell || currentCorpusLength < 7000) {
+    mirrorText = await fetchReadableMirror(url);
+    if (mirrorText) {
+      mirrorInsight = `\n\nREADABLE MIRROR EXTRACTION:\n${mirrorText}`;
+    }
   }
 
-  return blocks.join("\n\n═══════════════ NEXT SOURCE ═══════════════\n\n");
-}
+  const mirrorRawUrls = mirrorText.match(/https?:\/\/\S+/g) || [];
+  const mirrorSocialLinks = Array.from(new Set(mirrorRawUrls)).filter(
+    (u) => /github\.com|linkedin\.com|x\.com|twitter\.com|leetcode\.com|behance\.net|medium\.com/i.test(u)
+  );
 
-function mergeContactsFromUserInput(
-  data: ResumeData | null,
-  urls: { portfolioUrl: string; githubUrl: string; linkedinUrl: string }
-): ResumeData | null {
-  if (!data) return null;
-  if (urls.githubUrl.trim()) {
-    data.contacts.github = normalizeHttpUrl(urls.githubUrl.trim());
+  const allSocialLinks = Array.from(new Set([...socialLinks, ...mirrorSocialLinks]));
+
+  let socialEnrichment = "";
+  const githubFromSocial = allSocialLinks.find((l) => /github\.com\//i.test(l));
+  const githubUserFromSocial = githubFromSocial ? extractGitHubUsername(githubFromSocial) : null;
+  if (githubUserFromSocial) {
+    try {
+      socialEnrichment = `\n\nSOCIAL ENRICHMENT (GitHub)\n${await deepScrapeGitHub(githubUserFromSocial)}`;
+    } catch {
+      socialEnrichment = "";
+    }
   }
-  if (urls.linkedinUrl.trim()) {
-    data.contacts.linkedin = normalizeHttpUrl(urls.linkedinUrl.trim());
+
+  return `PORTFOLIO WEBSITE CONTENT (${url}):
+
+HOME META:
+${metaText || "N/A"}
+
+HOME TEXT:
+${homeText || "N/A"}
+
+HOME JSON-LD:
+${jsonLdText || "N/A"}
+
+SOCIAL LINKS:
+${allSocialLinks.length ? allSocialLinks.join("\n") : "N/A"}
+
+SITE PAGES (About/Projects/Experience/...):
+${subPages.filter(Boolean).join("\n") || "N/A"}
+${socialEnrichment}
+${mirrorInsight}
+${bundleInsight}`;
+}
+
+function extractProjectCandidatesFromPortfolio(text: string): Array<{ name: string; description: string }> {
+  const blocked = new Set([
+    "my projects",
+    "skills & expertise",
+    "skills",
+    "languages",
+    "frontend",
+    "backend",
+    "coding",
+    "frontend development",
+    "backend development",
+    "tools",
+    "design",
+    "education",
+    "contact information",
+    "certifications",
+    "who am i? (still figuring out)",
+    "explanation & communication",
+    "get in touch",
+  ]);
+
+  const results: Array<{ name: string; description: string }> = [];
+
+  const pushCandidate = (nameRaw: string, descriptionRaw = "") => {
+    const name = nameRaw
+      .replace(/^!\[[^\]]*?:\s*/i, "")
+      .replace(/^image\s+\d+\s*:\s*/i, "")
+      .replace(/\[[^\]]+\]/g, "")
+      .replace(/\s+icon$/i, "")
+      .replace(/[\[\]]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!name || name.length < 3 || name.length > 90) return;
+    const lowered = name.toLowerCase();
+    if (blocked.has(lowered)) return;
+    if (/(^|\s)image\s*\d*($|\s)|icon/.test(lowered)) return;
+    if (!/[a-zA-Z]/.test(name)) return;
+
+    const tokens = lowered.split(/\s+/).filter(Boolean);
+    const hasProjectHint = /(project|app|api|portal|dashboard|clone|builder|platform|system|tool|website|extension|folio|management)/i.test(name);
+    if (tokens.length === 1 && !hasProjectHint) return;
+
+    const description = descriptionRaw.replace(/\s+/g, " ").trim().slice(0, 220);
+    results.push({ name, description });
+  };
+
+  // GitHub deep-scrape blocks
+  for (const match of text.matchAll(/^PROJECT:\s*(.+)$/gim)) {
+    pushCandidate(match[1]);
   }
-  if (urls.portfolioUrl.trim()) {
-    data.contacts.portfolio = normalizeHttpUrl(urls.portfolioUrl.trim());
+
+  // Readable mirror markdown blocks: ### Project Name
+  for (const match of text.matchAll(/###\s+([^\n]+)\n([\s\S]{0,260}?)(?:\n###\s+|\n##\s+|$)/g)) {
+    const name = match[1] ?? "";
+    const body = (match[2] ?? "").replace(/\[[^\]]*\]\([^)]*\)/g, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, " ");
+    const descLine = body
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.length >= 25 && !line.startsWith("![") && !line.startsWith("http"));
+    pushCandidate(name, descLine ?? "");
   }
-  return data;
+
+  // Readable mirror inline card pattern:
+  // [![Image ...] ... ### Project Name Description ... ↗](https://...)
+  for (const match of text.matchAll(/###\s+([^\n\]]+?)\s+([\s\S]{20,260}?)(?:↗\]\(|\]\(https?:\/\/)/g)) {
+    const name = match[1] ?? "";
+    const desc = (match[2] ?? "")
+      .replace(/\[[^\]]*\]\([^)]*\)/g, " ")
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    pushCandidate(name, desc);
+  }
+
+  // Image-alt markdown pattern often includes project names:
+  // Image 1: Project Name [ Category ]
+  for (const match of text.matchAll(/Image\s+\d+\s*:\s*([^\[\n]+)(?:\[[^\]]+\])?/gi)) {
+    pushCandidate(match[1] ?? "");
+  }
+
+  // Generic markdown links can contain useful project titles.
+  for (const match of text.matchAll(/\[([^\]]{8,220})\]\((https?:\/\/[^\s)]+)\)/g)) {
+    const label = (match[1] ?? "")
+      .replace(/!\[[^\]]*\]/g, " ")
+      .replace(/#{1,6}\s*/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const url = match[2] ?? "";
+    if (!url) continue;
+
+    if (/github\.com\/[^/]+\/[^/]+/i.test(url)) {
+      const repo = url.split("/").filter(Boolean).slice(-1)[0]?.replace(/[#?].*$/, "") ?? "";
+      if (repo && repo.length >= 3) {
+        pushCandidate(repo.replace(/[-_]+/g, " "), label);
+      }
+      continue;
+    }
+
+    if (/leetcode\.com|linkedin\.com|x\.com|twitter\.com|mailto:|wa\.me|simpli-web\.app\.link|forage-uploads|sololearn\.com\/certificates/i.test(url)) {
+      continue;
+    }
+
+    // Keep only likely project-style labels.
+    if (/project|app|api|portal|dashboard|clone|builder|platform|system|tool|website|extension/i.test(label)) {
+      const cleaned = label.split("↗")[0].trim();
+      pushCandidate(cleaned, "Project extracted from portfolio link metadata.");
+    }
+  }
+
+  // Plain GitHub repository URLs appearing in source text.
+  for (const match of text.matchAll(/https?:\/\/github\.com\/([^\s/]+)\/([^\s/#?]+)/gi)) {
+    const repo = (match[2] ?? "").replace(/\.git$/i, "").trim();
+    if (repo) {
+      pushCandidate(repo.replace(/[-_]+/g, " "), "Project inferred from GitHub repository link.");
+    }
+  }
+
+  // De-duplicate by normalized project name
+  const seen = new Set<string>();
+  return results.filter((item) => {
+    const key = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
+function enrichResumeProjectsFromSource(resumeData: ResumeDataPayload, portfolioContent: string): ResumeDataPayload {
+  const projects = Array.isArray(resumeData.projects) ? [...resumeData.projects] : [];
+  const candidateProjects = extractProjectCandidatesFromPortfolio(portfolioContent);
 
-function asString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
+  const existingNames = new Set(
+    projects
+      .map((p) => p.name?.toLowerCase().replace(/[^a-z0-9]+/g, "").trim())
+      .filter(Boolean) as string[]
+  );
 
-function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter(Boolean);
-}
+  for (const candidate of candidateProjects) {
+    if (projects.length >= 8) break;
+    const normalized = candidate.name.toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
+    if (!normalized || existingNames.has(normalized)) continue;
 
-function normalizeResumeData(value: unknown): ResumeData | null {
-  const record = asRecord(value);
-  if (!record) return null;
+    const fallbackBullet = candidate.description
+      ? candidate.description
+      : "Built and showcased this project with practical implementation in the portfolio.";
 
-  const contacts = asRecord(record.contacts);
-  const skills = asRecord(record.skills);
+    projects.push({
+      name: candidate.name,
+      type: "other",
+      category: "ADDITIONAL PROJECTS",
+      description: candidate.description || "Project extracted from portfolio source.",
+      bullets: [fallbackBullet],
+      technologies: "",
+      links: {},
+    });
+
+    existingNames.add(normalized);
+  }
 
   return {
-    name: asString(record.name),
-    title: asString(record.title),
-    contacts: {
-      email: asString(contacts?.email),
-      phone: asString(contacts?.phone),
-      github: asString(contacts?.github),
-      linkedin: asString(contacts?.linkedin),
-      portfolio: asString(contacts?.portfolio),
-    },
-    skills: {
-      frontend: asString(skills?.frontend),
-      backend: asString(skills?.backend),
-      database: asString(skills?.database),
-      tools: asString(skills?.tools),
-      languages: asString(skills?.languages),
-      uiux: asString(skills?.uiux),
-      cloud: asString(skills?.cloud),
-    },
-    achievements: Array.isArray(record.achievements)
-      ? record.achievements
-          .map((item) => {
-            const achievement = asRecord(item);
-            if (!achievement) return null;
-            const title = asString(achievement.title);
-            if (!title) return null;
-            return {
-              title,
-              award: asString(achievement.award),
-              link: asString(achievement.link),
-            };
-          })
-          .filter((item): item is ResumeData["achievements"][number] => Boolean(item))
-      : [],
-    certificates: Array.isArray(record.certificates)
-      ? record.certificates
-          .map((item) => {
-            const certificate = asRecord(item);
-            if (!certificate) return null;
-            const name = asString(certificate.name);
-            if (!name) return null;
-            return {
-              name,
-              link: asString(certificate.link),
-            };
-          })
-          .filter((item): item is ResumeData["certificates"][number] => Boolean(item))
-      : [],
-    projects: Array.isArray(record.projects)
-      ? record.projects
-          .map((item) => {
-            const project = asRecord(item);
-            if (!project) return null;
-            const links = asRecord(project.links);
-            const name = asString(project.name);
-            if (!name) return null;
-            return {
-              name,
-              type: asString(project.type) || "other",
-              category: asString(project.category),
-              dateRange: asString(project.dateRange),
-              description: asString(project.description),
-              bullets: asStringArray(project.bullets),
-              technologies: asString(project.technologies),
-              links: {
-                github: asString(links?.github),
-                live: asString(links?.live),
-                demo: asString(links?.demo),
-              },
-            };
-          })
-          .filter((item): item is ResumeData["projects"][number] => Boolean(item))
-      : [],
-    education: Array.isArray(record.education)
-      ? record.education
-          .map((item) => {
-            const education = asRecord(item);
-            if (!education) return null;
-            const degree = asString(education.degree);
-            const institution = asString(education.institution);
-            if (!degree && !institution) return null;
-            return {
-              degree,
-              institution,
-              gpa: asString(education.gpa),
-              year: asString(education.year),
-              percentage: asString(education.percentage),
-            };
-          })
-          .filter((item): item is ResumeData["education"][number] => Boolean(item))
-      : [],
+    ...resumeData,
+    projects,
+  };
+}
+
+function computeAtsInsights(
+  resumeData: ResumeDataPayload | null,
+  jobDescription: string,
+  aiMatchedKeywords: string[],
+  aiMissingKeywords: string[]
+): { atsScore: number; matchedKeywords: string[]; missingKeywords: string[]; tip: string } {
+  if (!resumeData) {
+    return {
+      atsScore: 0,
+      matchedKeywords: [],
+      missingKeywords: [],
+      tip: "Could not parse resume details. Try regenerating with a clearer portfolio URL.",
+    };
+  }
+
+  const textParts = [
+    resumeData.name,
+    resumeData.title,
+    ...(resumeData.projects ?? []).flatMap((p) => [
+      p.name,
+      p.category,
+      p.description,
+      p.technologies,
+      ...(p.bullets ?? []),
+    ]),
+    ...(resumeData.certificates ?? []).map((c) => c.name),
+    ...(resumeData.achievements ?? []).flatMap((a) => [a.title, a.award]),
+    ...(resumeData.education ?? []).flatMap((e) => [e.degree, e.institution]),
+    ...(resumeData.skills ? Object.values(resumeData.skills) : []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const hasJD = jobDescription.trim().length > 0;
+  const stop = new Set([
+    "the", "and", "for", "with", "from", "that", "this", "you", "your", "are", "our", "will", "have", "has",
+    "job", "role", "work", "team", "using", "build", "developer", "experience", "years", "year", "into", "across",
+  ]);
+
+  const jdKeywords = Array.from(
+    new Set(
+      jobDescription
+        .toLowerCase()
+        .split(/[^a-z0-9+#.]+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length >= 3 || ["c", "c++", "c#", "go", "ui", "ux"].includes(w))
+        .filter((w) => !stop.has(w))
+    )
+  ).slice(0, 20);
+
+  const computedMatched = jdKeywords.filter((k) => textParts.includes(k));
+  const computedMissing = jdKeywords.filter((k) => !textParts.includes(k));
+
+  const mergedMatched = Array.from(new Set([...computedMatched, ...aiMatchedKeywords])).slice(0, 12);
+  const mergedMissing = Array.from(new Set([...computedMissing, ...aiMissingKeywords]))
+    .filter((k) => !mergedMatched.includes(k))
+    .slice(0, 8);
+
+  const contactsCount = Object.values(resumeData.contacts ?? {}).filter(Boolean).length;
+  const skillBuckets = Object.values(resumeData.skills ?? {}).filter((v) => Boolean(v && String(v).trim())).length;
+  const projects = resumeData.projects ?? [];
+  const projectCount = projects.length;
+  const bulletCount = projects.reduce((acc, p) => acc + (p.bullets?.filter(Boolean).length ?? 0), 0);
+  const certCount = (resumeData.certificates ?? []).filter((c) => c.name?.trim()).length;
+  const eduCount = (resumeData.education ?? []).filter((e) => e.degree?.trim()).length;
+
+  const structureScore =
+    Math.min(12, contactsCount * 2.4) +
+    Math.min(20, skillBuckets * 3) +
+    Math.min(28, projectCount * 4.5) +
+    Math.min(20, bulletCount * 1.8) +
+    Math.min(10, certCount * 2) +
+    Math.min(10, eduCount * 5);
+
+  const normalizedStructure = Math.min(100, Math.round(structureScore));
+  const coverage = hasJD && jdKeywords.length > 0
+    ? Math.round((computedMatched.length / jdKeywords.length) * 100)
+    : 0;
+
+  const atsScore = hasJD
+    ? Math.max(35, Math.min(99, Math.round(normalizedStructure * 0.6 + coverage * 0.4)))
+    : Math.max(35, Math.min(96, Math.round(normalizedStructure * 0.92 + Math.min(8, projectCount))));
+
+  let tip = "Resume is balanced and ATS-friendly.";
+  if (projectCount < 4) {
+    tip = "Add more portfolio-backed projects for stronger ATS relevance.";
+  } else if (hasJD && mergedMissing.length > 0) {
+    tip = `Add missing JD terms naturally: ${mergedMissing.slice(0, 3).join(", ")}.`;
+  } else if (skillBuckets < 5) {
+    tip = "Expand skills by category (frontend, backend, database, tools, cloud, languages).";
+  }
+
+  return {
+    atsScore,
+    matchedKeywords: mergedMatched,
+    missingKeywords: mergedMissing,
+    tip,
   };
 }
 
@@ -861,77 +967,49 @@ function normalizeResumeData(value: unknown): ResumeData | null {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      portfolioUrl = "",
-      githubUrl = "",
-      linkedinUrl = "",
-      jobDescription,
-      templateId = "classic",
-    } = body as {
-      portfolioUrl?: string;
-      githubUrl?: string;
-      linkedinUrl?: string;
-      jobDescription: string;
+    const { portfolioUrl, jobDescription, templateId = "classic" } = body as {
+      portfolioUrl: string;
+      jobDescription?: string;
       templateId?: string;
     };
 
-    const portfolioTrim = (portfolioUrl ?? "").trim();
-    const githubTrim = (githubUrl ?? "").trim();
-    const linkedinTrim = (linkedinUrl ?? "").trim();
-
-    if (!portfolioTrim && !githubTrim) {
+    if (!portfolioUrl?.trim()) {
       return NextResponse.json(
-        {
-          error:
-            "Provide a portfolio website URL and/or a GitHub profile URL (at least one is required).",
-        },
+        { error: "Portfolio URL is required." },
         { status: 400 }
       );
     }
 
-    if (!jobDescription?.trim()) {
-      return NextResponse.json(
-        { error: "Job description is required." },
-        { status: 400 }
-      );
-    }
-
-    if (jobDescription.trim().length < 50) {
+    if (jobDescription?.trim() && jobDescription.trim().length < 50) {
       return NextResponse.json(
         { error: "Job description must be at least 50 characters." },
         { status: 400 }
       );
     }
 
-    for (const [label, u] of [
-      ["Portfolio", portfolioTrim],
-      ["GitHub", githubTrim],
-      ["LinkedIn", linkedinTrim],
-    ] as const) {
-      if (u && !isValidOptionalUrl(u)) {
-        return NextResponse.json({ error: `${label} URL is not valid.` }, { status: 400 });
+    const effectiveJobDescription = jobDescription?.trim()
+      ? jobDescription.trim()
+      : `No specific job description provided.
+Build an overall placement-ready software/full-stack resume from portfolio data only.
+Prioritize strongest real projects, real achievements, practical tech stack, and credibility.
+Target broad roles: Full-Stack Developer, Frontend Developer, Backend Developer.
+Use ATS-friendly wording and realistic impact statements without fabrication.`;
+
+    // Deep scrape based on URL type
+    let portfolioContent: string;
+    const githubUsername = extractGitHubUsername(portfolioUrl);
+
+    if (githubUsername) {
+      try {
+        portfolioContent = await deepScrapeGitHub(githubUsername);
+      } catch {
+        // Fallback for API rate-limit / throttling / temporary GitHub API issues.
+        const fallback = await scrapeGenericPortfolio(portfolioUrl.trim());
+        portfolioContent = `${fallback}\n\n[Note: GitHub API deep scan unavailable right now; used page-level fallback extraction.]`;
       }
+    } else {
+      portfolioContent = await scrapeGenericPortfolio(portfolioUrl.trim());
     }
-
-    if (linkedinTrim && !/linkedin\.com\/(in|company|pub)\//i.test(normalizeHttpUrl(linkedinTrim))) {
-      return NextResponse.json(
-        { error: "LinkedIn URL should be a profile link on linkedin.com (e.g. …/in/username)." },
-        { status: 400 }
-      );
-    }
-
-    const jobTrack = inferJobTrack(jobDescription.trim());
-
-    const portfolioContent = await assembleScrapedPortfolioContent({
-      portfolioUrl: portfolioTrim,
-      githubUrl: githubTrim,
-      linkedinUrl: linkedinTrim,
-      jobTrack,
-    });
-
-    const ghDisplay = githubTrim ? normalizeHttpUrl(githubTrim) : "not provided";
-    const liDisplay = linkedinTrim ? normalizeHttpUrl(linkedinTrim) : "not provided";
-    const pfDisplay = portfolioTrim ? normalizeHttpUrl(portfolioTrim) : "not provided";
 
     // Build the final prompt with template format
     const templateFormat = TEMPLATE_FORMATS[templateId] ?? TEMPLATE_FORMATS.classic;
@@ -942,22 +1020,12 @@ TEMPLATE FORMAT TO USE:
 ${templateFormat}
 
 ═══════════════════════════════════════════
-JOB ALIGNMENT (derived from job description): ${jobTrack.toUpperCase()}
-═══════════════════════════════════════════
-
-USER-SUPPLIED PROFILE URLS — copy EXACTLY into resumeData.contacts (do not drop):
-- contacts.portfolio: ${pfDisplay}
-- contacts.github: ${ghDisplay}
-- contacts.linkedin: ${liDisplay}
-(Use empty string "" only if that line says "not provided".)
-
-═══════════════════════════════════════════
-PORTFOLIO DATA (scraped — may include multiple sections):
+PORTFOLIO DATA (deep scraped):
 ${portfolioContent}
 
 ═══════════════════════════════════════════
 JOB DESCRIPTION:
-${jobDescription.trim()}
+${effectiveJobDescription}
 ═══════════════════════════════════════════
 
 Now generate the perfect resume. Remember: use REAL data from the portfolio only.`;
@@ -1022,21 +1090,31 @@ Now generate the perfect resume. Remember: use REAL data from the portfolio only
     }
 
 
-    const normalized = normalizeResumeData(parsed.resumeData);
-    const resumeData = mergeContactsFromUserInput(normalized, {
-      portfolioUrl: portfolioTrim,
-      githubUrl: githubTrim,
-      linkedinUrl: linkedinTrim,
-    });
+    const resumeData = typeof parsed.resumeData === "object" && parsed.resumeData
+      ? enrichResumeProjectsFromSource(parsed.resumeData as ResumeDataPayload, portfolioContent)
+      : null;
+
+    const aiMatchedKeywords = Array.isArray(parsed.matchedKeywords)
+      ? parsed.matchedKeywords.filter((v): v is string => typeof v === "string")
+      : [];
+    const aiMissingKeywords = Array.isArray(parsed.missingKeywords)
+      ? parsed.missingKeywords.filter((v): v is string => typeof v === "string")
+      : [];
+
+    const insights = computeAtsInsights(
+      resumeData,
+      jobDescription?.trim() ?? "",
+      aiMatchedKeywords,
+      aiMissingKeywords
+    );
 
     return NextResponse.json({
       resumeData,
-      atsScore: Math.min(100, Math.max(0, Number(parsed.atsScore) || 70)),
-      matchedKeywords: Array.isArray(parsed.matchedKeywords) ? parsed.matchedKeywords.slice(0, 12) : [],
-      missingKeywords: Array.isArray(parsed.missingKeywords) ? parsed.missingKeywords.slice(0, 8) : [],
-      tip: asString(parsed.tip),
+      atsScore: insights.atsScore,
+      matchedKeywords: insights.matchedKeywords,
+      missingKeywords: insights.missingKeywords,
+      tip: (typeof parsed.tip === "string" && parsed.tip.trim()) ? parsed.tip : insights.tip,
       templateId,
-      jobAlignment: jobTrack,
     });
   } catch (err) {
     return NextResponse.json(
