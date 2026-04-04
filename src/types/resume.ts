@@ -16,6 +16,7 @@ export type OptimizeRequestInput = {
 
 export type PipelineResponse = {
   fileUrl: string | null;
+  enrichedResume: string;
   analysis: ResumeAnalysis;
   optimizedResume: string;
   review: ResumeReview;
@@ -29,5 +30,4 @@ export type ResumePipelineRecord = PipelineResponse & {
   createdAt: string;
   updatedAt: string;
 };
-
 

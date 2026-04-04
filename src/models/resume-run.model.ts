@@ -12,6 +12,11 @@ const ResumeRunSchema = new Schema(
       required: true,
       trim: true,
     },
+    enrichedResume: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     jobDescription: {
       type: String,
       trim: true,

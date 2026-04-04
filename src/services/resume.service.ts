@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 
+import { enrichResume } from "../agents/enrichment.agent";
 import { analyzeResume } from "../agents/analyzer.agent";
 import { optimizeResume } from "../agents/optimizer.agent";
 import { reviewResume, type ResumeReview } from "../agents/reviewer.agent";
@@ -56,6 +57,7 @@ function mapResumeRun(document: {
   _id: Types.ObjectId | string;
   fileUrl?: string | null;
   resumeText: string;
+  enrichedResume?: string;
   jobDescription?: string | null;
   analysis: PipelineResponse["analysis"];
   optimizedResume: string;
@@ -67,6 +69,7 @@ function mapResumeRun(document: {
     id: String(document._id),
     fileUrl: document.fileUrl ?? null,
     resumeText: document.resumeText,
+    enrichedResume: document.enrichedResume?.trim() || document.resumeText,
     jobDescription: document.jobDescription ?? null,
     analysis: document.analysis,
     optimizedResume: document.optimizedResume,
@@ -90,13 +93,19 @@ export async function runResumePipeline(
     : null;
 
   const jobDescription = input.jobDescription?.trim() ?? "";
+  const enrichedResume = await enrichResume(resumeText);
 
-  const analysis = await analyzeResume(resumeText, jobDescription);
-  const optimizedResume = await optimizeResume(resumeText, analysis, jobDescription);
+  const analysis = await analyzeResume(enrichedResume, jobDescription);
+  const optimizedResume = await optimizeResume(
+    enrichedResume,
+    analysis,
+    jobDescription
+  );
   const review = await reviewResume(resumeText, optimizedResume, jobDescription);
 
   return {
     fileUrl,
+    enrichedResume,
     analysis,
     optimizedResume,
     review,
@@ -116,6 +125,7 @@ export async function saveResumePipelineRun(
   const created = await ResumeRunModel.create({
     fileUrl: output.fileUrl,
     resumeText: input.resumeText.trim(),
+    enrichedResume: output.enrichedResume,
     jobDescription: input.jobDescription?.trim() || undefined,
     analysis: output.analysis,
     optimizedResume: output.optimizedResume,
@@ -164,4 +174,3 @@ export async function getResumePipelineRunById(
     ? mapResumeRun(document as Parameters<typeof mapResumeRun>[0])
     : null;
 }
-

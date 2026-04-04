@@ -58,6 +58,12 @@ export async function GET(request: Request) {
         fileName: "string (optional)",
         jobDescription: "string (optional, target role / JD)",
       },
+      responseBody: {
+        enrichedResume: "string",
+        analysis: "ResumeAnalysis JSON",
+        optimizedResume: "string",
+        review: "ResumeReview JSON",
+      },
       runs,
     });
   } catch (error) {
