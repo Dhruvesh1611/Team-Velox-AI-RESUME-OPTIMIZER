@@ -1,5 +1,15 @@
 # HireLens — AI Resume Optimization Platform
 
+* [Live Application](https://hirelens.dev)
+* [API Documentation](https://documenter.getpostman.com/view/39189648/2sBXiqDo8i)
+* [Watch Demo](https://drive.google.com/drive/folders/1tj_dQ3L_6_GkwRvi1QNwPWctzgbShZ4K?usp=sharing)
+
+| Landing Page | UI Customization |
+|-------------|----------------|
+| <img src="./assets/landing.png" height="250" style="object-fit: cover;" /> | <img src="./assets/themes.png" height="250" style="object-fit: cover;" /> |
+
+
+
 ## 1. Overview
 
 HireLens is an AI-powered SaaS platform designed to analyze resumes and professional profiles to deliver intelligent, actionable optimization insights. The system evaluates resume content, identifies gaps, and provides structured improvements to enhance clarity, relevance, and alignment with industry expectations.
