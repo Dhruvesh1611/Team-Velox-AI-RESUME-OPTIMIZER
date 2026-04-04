@@ -11,7 +11,9 @@ import { RunActionButton } from "../components/watermelon-ui/run-action-button";
 import { ContinuousTabs } from "../components/watermelon-ui/continuous-tabs";
 import { PricingWidget } from "../components/watermelon-ui/pricing-widget";
 import { RadialCarousel } from "../components/watermelon-ui/radial-carousel";
-import { Sparkles, ArrowRight, Brain, Wand2, Star } from "lucide-react";
+import ResumeBuilderInput from "../components/builder/ResumeBuilderInput";
+import GeneratedResumeCard, { type BuilderResult } from "../components/builder/GeneratedResumeCard";
+import { Sparkles, ArrowRight, Brain, Wand2, Star, Zap } from "lucide-react";
 import {
   FaInbox,
   FaMagnifyingGlass,
@@ -140,6 +142,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("analysis");
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  // Builder state
+  const [builderLoading, setBuilderLoading] = useState(false);
+  const [builderResult, setBuilderResult] = useState<BuilderResult | null>(null);
+  const [builderError, setBuilderError] = useState<string | null>(null);
+  const builderResultRef = useRef<HTMLDivElement>(null);
+
   async function handleSubmit(resumeText: string, file?: string) {
     setApiError(null);
     setResult(null);
@@ -172,6 +180,29 @@ export default function Home() {
       setApiError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleBuild(portfolioUrl: string, jobDescription: string, templateId: string) {
+    setBuilderError(null);
+    setBuilderResult(null);
+    setBuilderLoading(true);
+    try {
+      const res = await fetch("/api/build-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ portfolioUrl, jobDescription, templateId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Build failed.");
+      setBuilderResult(data as BuilderResult);
+      setTimeout(() => {
+        builderResultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } catch (err) {
+      setBuilderError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setBuilderLoading(false);
     }
   }
 
@@ -253,6 +284,62 @@ export default function Home() {
             centerSize={340}
           />
         </div>
+      </section>
+
+      {/* ── Resume Builder ── */}
+      <section id="builder" className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 border border-violet-100 text-violet-600 text-xs font-semibold mb-4">
+            <Zap size={12} />
+            1-Click Resume Builder
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Build Your Resume Instantly</h2>
+          <p className="text-slate-500 text-sm mt-2 max-w-xl mx-auto">
+            Paste your portfolio link (GitHub, personal site, LinkedIn) + job description → AI writes a tailored, ATS-optimized resume in seconds.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-slate-100 bg-gradient-to-r from-violet-50/60 to-indigo-50/30">
+            <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-1">AI Resume Builder</p>
+            <h3 className="text-xl font-bold text-slate-900">Build from Your Portfolio</h3>
+            <p className="text-sm text-slate-500 mt-1">We read your portfolio + the job description to craft a resume that beats ATS filters.</p>
+          </div>
+          <div className="p-8">
+            <ResumeBuilderInput onSubmit={handleBuild} loading={builderLoading} />
+          </div>
+
+          {builderLoading && (
+            <div className="px-8 pb-8 flex flex-col items-center gap-3">
+              <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">Building Your Resume…</p>
+              <RunActionButton steps={[
+                { id: 1, label: "Reading Portfolio", icon: FaInbox },
+                { id: 2, label: "Analyzing Job", icon: FaMagnifyingGlass },
+                { id: 3, label: "Matching Keywords", icon: BsFileTextFill },
+                { id: 4, label: "Writing Resume", icon: FaWandMagicSparkles },
+                { id: 5, label: "Scoring ATS", icon: TbClockHour12Filled },
+                { id: 6, label: "Finalizing", icon: FaAward },
+              ]} />
+            </div>
+          )}
+
+          {builderError && (
+            <div className="mx-8 mb-8 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              ⚠️ {builderError}
+            </div>
+          )}
+        </div>
+
+        {builderResult && (
+          <div ref={builderResultRef} className="mt-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px flex-1 bg-slate-200" />
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 px-2">Your Generated Resume</p>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+            <GeneratedResumeCard result={builderResult} />
+          </div>
+        )}
       </section>
 
       {/* ── How It Works ── */}

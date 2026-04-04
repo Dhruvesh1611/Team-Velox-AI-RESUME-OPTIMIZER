@@ -25,6 +25,12 @@ export default function Navbar() {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6">
           <a
+            href="#builder"
+            className="text-sm text-slate-600 hover:text-indigo-600 transition-colors font-medium"
+          >
+            Builder
+          </a>
+          <a
             href="#optimizer"
             className="text-sm text-slate-600 hover:text-indigo-600 transition-colors font-medium"
           >
@@ -73,6 +79,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-4 py-4 flex flex-col gap-3 animate-fade-in">
+          <a href="#builder" className="text-sm text-slate-700 font-medium py-1" onClick={() => setMobileOpen(false)}>Builder</a>
           <a href="#optimizer" className="text-sm text-slate-700 font-medium py-1" onClick={() => setMobileOpen(false)}>Optimizer</a>
           <a href="#how-it-works" className="text-sm text-slate-700 font-medium py-1" onClick={() => setMobileOpen(false)}>How it works</a>
           <a href="#history" className="text-sm text-slate-700 font-medium py-1" onClick={() => setMobileOpen(false)}>History</a>
