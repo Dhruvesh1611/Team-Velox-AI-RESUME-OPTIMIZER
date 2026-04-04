@@ -12,7 +12,7 @@ export default function SiteFooter() {
           </div>
           <span className="font-medium text-slate-600">HireLens</span> · AI Resume Suite
         </div>
-        <p className="text-slate-400">Copyright 2026 by Velox</p>
+        <p className="text-slate-400">Copyright © 2026 by Velox</p>
       </div>
     </footer>
   );

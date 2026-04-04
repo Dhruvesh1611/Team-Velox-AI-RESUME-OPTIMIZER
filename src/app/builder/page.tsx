@@ -281,7 +281,7 @@ export default function BuilderPage() {
       </section>
 
       {/* ── Why Trust HireLens ── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 mb-4">
         <div className="text-center mb-12">
           <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-2">
             Quality You Can Trust
@@ -311,20 +311,6 @@ export default function BuilderPage() {
               </div>
             );
           })}
-        </div>
-
-        {/* Trust bar */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-8 text-sm text-slate-400">
-          {[
-            { icon: CheckCircle, label: "No fabricated content" },
-            { icon: Target, label: "Keyword-matched to JD" },
-            { icon: Shield, label: "ATS-tested formats" },
-          ].map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-center gap-2">
-              <Icon size={15} className="text-emerald-500" />
-              <span>{label}</span>
-            </div>
-          ))}
         </div>
       </section>
 

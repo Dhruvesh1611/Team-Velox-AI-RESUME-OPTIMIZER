@@ -34,7 +34,7 @@ export default function ContactPage() {
     setStatus("sending");
 
     // Open mailto link as fallback
-    const mailtoLink = `mailto:teamvelox.charusat@gmail.com?subject=${encodeURIComponent(
+    const mailtoLink = `mailto:dhruvesh.shyara.cg@gmail.com?subject=${encodeURIComponent(
       form.subject || "HireLens Contact"
     )}&body=${encodeURIComponent(
       `Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`
@@ -49,10 +49,6 @@ export default function ContactPage() {
       setForm({ name: "", email: "", subject: "", message: "" });
     }, 4000);
   }
-
-  const TEAM_MEMBERS = [
-    { name: "Dhruvesh Shyara", role: "Full Stack Developer", github: "https://github.com/Dhruvesh1611" },
-  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f8fafc]">

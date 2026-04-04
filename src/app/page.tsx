@@ -498,9 +498,9 @@ export default function Home() {
               Use <span className="text-indigo-700 font-medium">Job-specific mode</span> when you have a posting.
             </p>
             <ul className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium text-slate-600">
-              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Analyzer (Groq)</li>
-              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Optimizer (Groq)</li>
-              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Reviewer (Hugging Face)</li>
+              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Analyzer</li>
+              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Optimizer</li>
+              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Reviewer</li>
               <li className="px-2 py-1 rounded-md bg-indigo-100/80 border border-indigo-200 text-indigo-800">
                 + Interview (Groq)
               </li>
