@@ -4,6 +4,9 @@ import type { ResumeReview } from "../agents/reviewer.agent";
 export type PipelineRequestInput = {
   resumeText: string;
   file?: string;
+  fileName?: string;
+  /** Optional target role / JD for job-specific keyword gaps and tailoring */
+  jobDescription?: string;
 };
 
 export type OptimizeRequestInput = {
@@ -21,6 +24,10 @@ export type PipelineResponse = {
 export type ResumePipelineRecord = PipelineResponse & {
   id: string;
   resumeText: string;
+  /** Stored when user provided a target JD */
+  jobDescription?: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+

@@ -77,7 +77,7 @@ export default function ContactPage() {
             Get in Touch
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-5 animate-fade-in delay-100">
-            Contact <span className="gradient-text">Team Velox</span>
+            Contact <span className="gradient-text">Us</span>
           </h1>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed animate-fade-in delay-200">
             Have questions, feedback, or collaboration ideas? We&apos;d love to hear from you.
@@ -208,7 +208,7 @@ export default function ContactPage() {
                   <div>
                     <p className="text-xs text-slate-400 font-medium">Email</p>
                     <a href="mailto:teamvelox.charusat@gmail.com" className="text-sm text-slate-700 hover:text-indigo-600 transition-colors">
-                      teamvelox.charusat@gmail.com
+                      
                     </a>
                   </div>
                 </div>
@@ -218,7 +218,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 font-medium">Location</p>
-                    <p className="text-sm text-slate-700">CHARUSAT University, Gujarat, India</p>
+                    <p className="text-sm text-slate-700">India</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -227,7 +227,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 font-medium">Team</p>
-                    <p className="text-sm text-slate-700">Team Velox · CHARUSAT</p>
+                    <p className="text-sm text-slate-700">Velox</p>
                   </div>
                 </div>
               </div>
@@ -261,8 +261,8 @@ export default function ContactPage() {
                     <Globe size={16} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-700 group-hover:text-violet-600 transition-colors">Portfolio</p>
-                    <p className="text-xs text-slate-400">dhruveshshyara.me</p>
+                    <p className="text-sm font-medium text-slate-700 group-hover:text-violet-600 transition-colors">Placeholder</p>
+
                   </div>
                 </a>
               </div>

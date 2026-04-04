@@ -295,7 +295,6 @@ The project is aligned with the hackathon judging criteria:
 * Job-specific resume customization
 * AI-based mock interview system
 * Candidate success prediction models
-* Recruiter-facing analytics dashboard
 
 ---
 

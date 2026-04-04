@@ -12,6 +12,11 @@ const ResumeRunSchema = new Schema(
       required: true,
       trim: true,
     },
+    jobDescription: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     analysis: {
       skills: {
         type: [String],
@@ -63,6 +68,23 @@ const ResumeRunSchema = new Schema(
         type: String,
         required: true,
         trim: true,
+      },
+      placement_readiness_score: {
+        type: Number,
+        default: null,
+      },
+      placement_summary: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      role_strengths: {
+        type: [String],
+        default: [],
+      },
+      role_gaps: {
+        type: [String],
+        default: [],
       },
     },
   },

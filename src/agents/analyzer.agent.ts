@@ -1,4 +1,5 @@
 import { callAI } from "../services/ai.provider";
+import { budgetText } from "../services/prompt-budget.service";
 
 export type ResumeAnalysis = {
   skills: string[];
@@ -29,7 +30,7 @@ Rules:
 - "skills": technical and professional skills explicitly present or strongly evidenced in the resume.
 - "weak_points": vague language, weak phrasing, or weak sections found in the resume.
 - "missing_metrics": places where achievements mention work but omit measurable outcomes.
-- "keyword_gaps": important missing keywords or concepts that would improve ATS relevance based on the existing content.
+- "keyword_gaps": important missing keywords or concepts that would improve ATS relevance based on the existing content (and the target job description when provided).
 - "structure_issues": formatting or organization problems visible from the text structure.
 - Use empty arrays when needed.
 - Output valid JSON only.
@@ -67,16 +68,24 @@ function parseAnalysisResponse(rawResponse: string): ResumeAnalysis {
   };
 }
 
-export async function analyzeResume(resumeText: string): Promise<ResumeAnalysis> {
+export async function analyzeResume(
+  resumeText: string,
+  jobDescription?: string
+): Promise<ResumeAnalysis> {
   if (!resumeText.trim()) {
     throw new Error("Resume text is required for analysis.");
   }
 
+  const budgetedResumeText = budgetText(resumeText, 7000);
+  const jobBlock = jobDescription?.trim()
+    ? `Target job description (use only to refine keyword_gaps; never invent facts not supported by the resume):\n"""\n${budgetText(jobDescription, 4000)}\n"""\n\n`
+    : "";
+
   const prompt = `${ANALYZER_PROMPT}
 
-Resume text:
+${jobBlock}Resume text:
 """
-${resumeText}
+${budgetedResumeText}
 """`;
 
   const response = await callAI(prompt, {

@@ -1,5 +1,6 @@
 import type { ResumeAnalysis } from "./analyzer.agent";
 import { callAI } from "../services/ai.provider";
+import { budgetText } from "../services/prompt-budget.service";
 
 const OPTIMIZER_PROMPT = `
 You are the Optimizer Agent for a production resume optimization pipeline.
@@ -7,6 +8,7 @@ You are the Optimizer Agent for a production resume optimization pipeline.
 Task:
 - Rewrite the resume to improve clarity, impact, specificity, and structure.
 - Use the provided analysis to guide the rewrite.
+- When a target job description is provided, align tone and keywords naturally without fabricating experience.
 - Return only the optimized resume text.
 
 Hard constraints:
@@ -19,20 +21,26 @@ Hard constraints:
 
 export async function optimizeResume(
   resumeText: string,
-  analysis: ResumeAnalysis
+  analysis: ResumeAnalysis,
+  jobDescription?: string
 ): Promise<string> {
   if (!resumeText.trim()) {
     throw new Error("Resume text is required for optimization.");
   }
 
+  const budgetedResumeText = budgetText(resumeText, 7000);
+  const jobBlock = jobDescription?.trim()
+    ? `Target job description:\n"""\n${budgetText(jobDescription, 4000)}\n"""\n\n`
+    : "";
+
   const prompt = `${OPTIMIZER_PROMPT}
 
-Analysis JSON:
+${jobBlock}Analysis JSON:
 ${JSON.stringify(analysis, null, 2)}
 
 Original resume text:
 """
-${resumeText}
+${budgetedResumeText}
 """`;
 
   const optimizedResume = await callAI(prompt, {
