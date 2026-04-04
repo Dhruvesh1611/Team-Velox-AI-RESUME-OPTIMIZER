@@ -4,6 +4,7 @@ import { analyzeResume } from "../../../agents/analyzer.agent";
 
 type AnalyzeRequestBody = {
   resumeText?: string;
+  jobDescription?: string;
 };
 
 export async function GET() {
@@ -12,6 +13,7 @@ export async function GET() {
     method: "POST",
     requiredBody: {
       resumeText: "string",
+      jobDescription: "string (optional)",
     },
   });
 }
@@ -28,7 +30,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const analysis = await analyzeResume(resumeText);
+    const analysis = await analyzeResume(
+      resumeText,
+      body.jobDescription?.trim() || undefined
+    );
     return NextResponse.json({ analysis });
   } catch (error) {
     const message =

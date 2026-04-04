@@ -1,12 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { History, ChevronDown, ChevronUp, Clock, Star, Loader2, DatabaseZap } from "lucide-react";
+import {
+  History,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Star,
+  Loader2,
+  DatabaseZap,
+  Target,
+  Sparkles,
+} from "lucide-react";
 
 interface ResumeRun {
   id: string;
   resumeText: string;
   optimizedResume: string;
+  jobDescription?: string | null;
   analysis: {
     skills: string[];
     weak_points: string[];
@@ -20,6 +31,10 @@ interface ResumeRun {
     impact_improvement: string;
     keyword_relevance: string;
     final_summary: string;
+    placement_readiness_score?: number;
+    placement_summary?: string;
+    role_strengths?: string[];
+    role_gaps?: string[];
   };
   fileUrl: string | null;
   createdAt: string;
@@ -40,7 +55,20 @@ function ScoreBadge({ score }: { score: number }) {
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${color}`}>
       <Star size={10} />
-      {score}/100
+      Opt {score}
+    </span>
+  );
+}
+
+function ReadinessBadge({ score }: { score: number }) {
+  const color =
+    score >= 75 ? "bg-violet-100 text-violet-800 border-violet-200"
+    : score >= 50 ? "bg-violet-50 text-violet-700 border-violet-100"
+    : "bg-slate-100 text-slate-600 border-slate-200";
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${color}`}>
+      <Sparkles size={10} />
+      Rdy {score}
     </span>
   );
 }
@@ -58,6 +86,17 @@ function RunRow({ run }: { run: ResumeRun }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <ScoreBadge score={run.review.improvement_score} />
+            <ReadinessBadge
+              score={
+                run.review.placement_readiness_score ?? run.review.improvement_score
+              }
+            />
+            {run.jobDescription && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                <Target size={10} />
+                JD
+              </span>
+            )}
             <span className="text-[11px] text-slate-400 flex items-center gap-1">
               <Clock size={10} />
               {formatDate(run.createdAt)}
@@ -77,6 +116,26 @@ function RunRow({ run }: { run: ResumeRun }) {
             <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1">AI Summary</p>
             <p className="text-sm text-slate-700">{run.review.final_summary}</p>
           </div>
+
+          {run.jobDescription && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
+                Target job (saved)
+              </p>
+              <p className="text-xs text-slate-600 line-clamp-4 bg-white rounded-lg border border-slate-100 p-3">
+                {run.jobDescription}
+              </p>
+            </div>
+          )}
+
+          {run.review.placement_summary && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
+                Readiness note
+              </p>
+              <p className="text-sm text-slate-700">{run.review.placement_summary}</p>
+            </div>
+          )}
 
           {/* Skills */}
           {run.analysis.skills.length > 0 && (

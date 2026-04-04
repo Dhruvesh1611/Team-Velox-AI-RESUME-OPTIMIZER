@@ -12,6 +12,8 @@ interface TabItem {
 interface ContinuousTabsProps {
     tabs?: TabItem[];
     defaultActiveId?: string;
+    /** When set, tab selection is controlled by the parent (stays in sync with results). */
+    activeId?: string;
     onChange?: (id: string) => void;
 }
 
@@ -26,17 +28,22 @@ const DEFAULT_TABS: TabItem[] = [
 export const ContinuousTabs: FC<ContinuousTabsProps> = ({
     tabs = DEFAULT_TABS,
     defaultActiveId = "home",
+    activeId: controlledActiveId,
     onChange,
 }) => {
-    const [active, setActive] = useState<string>(defaultActiveId);
+    const [internalActive, setInternalActive] = useState<string>(defaultActiveId);
     const [isMounted, setIsMounted] = useState<boolean>(false);
+    const isControlled = controlledActiveId !== undefined;
+    const active = isControlled ? controlledActiveId : internalActive;
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
     const handleChange = (id: string) => {
-        setActive(id);
+        if (!isControlled) {
+            setInternalActive(id);
+        }
         onChange?.(id);
     };
 

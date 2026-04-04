@@ -6,6 +6,7 @@ import type { ResumeAnalysis } from "../../../agents/analyzer.agent";
 type OptimizeRequestBody = {
   resumeText?: string;
   analysis?: ResumeAnalysis;
+  jobDescription?: string;
 };
 
 export async function GET() {
@@ -15,6 +16,7 @@ export async function GET() {
     requiredBody: {
       resumeText: "string",
       analysis: "ResumeAnalysis JSON",
+      jobDescription: "string (optional)",
     },
   });
 }
@@ -39,7 +41,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const optimizedResume = await optimizeResume(resumeText, analysis);
+    const optimizedResume = await optimizeResume(
+      resumeText,
+      analysis,
+      body.jobDescription?.trim() || undefined
+    );
 
     return NextResponse.json({ optimizedResume });
   } catch (error) {

@@ -224,7 +224,9 @@ export async function callAI(
   const model = resolveModel(provider, options.model);
   const temperature = options.temperature ?? DEFAULT_TEMPERATURE;
 
-  console.log("Using provider:", provider);
+  if (process.env.AI_DEBUG === "1") {
+    console.info("[ai]", provider, model);
+  }
 
   if (provider === "gemini") {
     return callGemini(prompt, model, temperature);

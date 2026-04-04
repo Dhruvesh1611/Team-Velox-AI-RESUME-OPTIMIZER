@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Copy, Check, Lightbulb, TrendingUp, TrendingDown, Eye, Download, X, ExternalLink } from "lucide-react";
+import { FaGithub, FaLinkedin } from "react-icons/fa6";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ export interface ResumeData {
   education: Array<{ degree: string; institution: string; gpa?: string; year?: string; percentage?: string }>;
 }
 
+export type JobAlignment = "frontend" | "backend" | "fullstack" | "general";
+
 export interface BuilderResult {
   resumeData: ResumeData | null;
   atsScore: number;
@@ -32,6 +35,7 @@ export interface BuilderResult {
   missingKeywords: string[];
   tip: string;
   templateId?: string;
+  jobAlignment?: JobAlignment;
 }
 
 // ── Resume renderer component ─────────────────────────────────────────────
@@ -50,8 +54,15 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
     data.skills.languages && { label: "Languages", value: data.skills.languages },
   ].filter(Boolean) as { label: string; value: string }[];
 
-  // Priority group ordering
-  const priorityOrder: Record<string, number> = { internship: 0, freelancing: 1, fullstack: 2, opensource: 3, other: 4 };
+  const priorityOrder: Record<string, number> = {
+    internship: 0,
+    freelancing: 1,
+    fullstack: 2,
+    frontend: 3,
+    backend: 3,
+    opensource: 4,
+    other: 5,
+  };
   const projects = [...data.projects].sort((a, b) => (priorityOrder[a.type] ?? 5) - (priorityOrder[b.type] ?? 5));
 
   // Group projects by category
@@ -79,9 +90,47 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
         <div className={`flex flex-wrap gap-x-3 gap-y-0.5 mt-1 ${compact ? "text-[7.5px]" : "text-[8.5px]"} text-gray-600`}>
           {data.contacts.email && <span>✉ {data.contacts.email}</span>}
           {data.contacts.phone && <span>☏ {data.contacts.phone}</span>}
-          {data.contacts.github && <span>⌥ {data.contacts.github.replace("https://", "")}</span>}
-          {data.contacts.linkedin && <span>in {data.contacts.linkedin.replace("https://linkedin.com/in/", "linkedin.com/in/")}</span>}
-          {data.contacts.portfolio && <span>⊕ {data.contacts.portfolio.replace("https://", "")}</span>}
+          {data.contacts.github && (
+            <a
+              href={data.contacts.github.startsWith("http") ? data.contacts.github : `https://${data.contacts.github}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-indigo-700 hover:underline"
+            >
+              <FaGithub className="inline flex-shrink-0" />
+              GitHub
+            </a>
+          )}
+          {data.contacts.linkedin && (
+            <a
+              href={
+                data.contacts.linkedin.startsWith("http")
+                  ? data.contacts.linkedin
+                  : `https://${data.contacts.linkedin}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-[#0A66C2] hover:underline"
+            >
+              <FaLinkedin className="inline flex-shrink-0" />
+              LinkedIn
+            </a>
+          )}
+          {data.contacts.portfolio && (
+            <a
+              href={
+                data.contacts.portfolio.startsWith("http")
+                  ? data.contacts.portfolio
+                  : `https://${data.contacts.portfolio}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-indigo-700 hover:underline"
+            >
+              <ExternalLink size={9} className="flex-shrink-0" />
+              Portfolio
+            </a>
+          )}
         </div>
       </div>
 
@@ -149,12 +198,60 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
           {/* Contact Details */}
           <div>
             <div className={headingBorder}>Contact Details</div>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {data.contacts.phone && <p>☏ {data.contacts.phone}</p>}
               {data.contacts.email && <p>✉ {data.contacts.email}</p>}
-              {data.contacts.github && <p>⌥ GitHub: {data.contacts.github.split("/").pop()}</p>}
-              {data.contacts.linkedin && <p>in LinkedIn: {data.contacts.linkedin.split("/in/")[1] ?? ""}</p>}
-              {data.contacts.portfolio && <p>⊕ Portfolio: {data.contacts.portfolio.replace("https://", "")}</p>}
+              {data.contacts.github && (
+                <p className="flex items-center gap-1">
+                  <FaGithub className="flex-shrink-0 text-gray-800" />
+                  <a
+                    href={
+                      data.contacts.github.startsWith("http")
+                        ? data.contacts.github
+                        : `https://${data.contacts.github}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-700 underline break-all"
+                  >
+                    {data.contacts.github.replace(/^https?:\/\//, "")}
+                  </a>
+                </p>
+              )}
+              {data.contacts.linkedin && (
+                <p className="flex items-center gap-1">
+                  <FaLinkedin className="flex-shrink-0 text-[#0A66C2]" />
+                  <a
+                    href={
+                      data.contacts.linkedin.startsWith("http")
+                        ? data.contacts.linkedin
+                        : `https://${data.contacts.linkedin}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#0A66C2] underline break-all"
+                  >
+                    {data.contacts.linkedin.replace(/^https?:\/\//, "")}
+                  </a>
+                </p>
+              )}
+              {data.contacts.portfolio && (
+                <p className="flex items-center gap-1">
+                  <ExternalLink size={10} className="flex-shrink-0 text-indigo-600" />
+                  <a
+                    href={
+                      data.contacts.portfolio.startsWith("http")
+                        ? data.contacts.portfolio
+                        : `https://${data.contacts.portfolio}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-700 underline break-all"
+                  >
+                    {data.contacts.portfolio.replace(/^https?:\/\//, "")}
+                  </a>
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -211,7 +308,15 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
 // ── Print HTML generator ──────────────────────────────────────────────────
 
 function buildPrintHTML(data: ResumeData, atsScore: number): string {
-  const priorityOrder: Record<string, number> = { internship: 0, freelancing: 1, fullstack: 2, opensource: 3, other: 4 };
+  const priorityOrder: Record<string, number> = {
+    internship: 0,
+    freelancing: 1,
+    fullstack: 2,
+    frontend: 3,
+    backend: 3,
+    opensource: 4,
+    other: 5,
+  };
   const projects = [...data.projects].sort((a, b) => (priorityOrder[a.type] ?? 5) - (priorityOrder[b.type] ?? 5));
 
   const grouped: Record<string, typeof projects> = {};
@@ -267,6 +372,7 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
     h1 { font-size:18pt; font-weight:900; text-transform:uppercase; letter-spacing:0.03em; }
     .subtitle { font-size:8pt; text-transform:uppercase; letter-spacing:0.08em; color:#555; margin:1pt 0; }
     .contact-bar { font-size:7.5pt; color:#444; display:flex; flex-wrap:wrap; gap:6pt; margin-top:3pt; }
+    .contact-bar a { color:#3730a3; text-decoration:underline; }
     hr { border:none; border-top:1px solid #999; margin:4pt 0; }
     .body { display:flex; gap:14pt; margin-top:4pt; }
     .left { width:36%; flex-shrink:0; }
@@ -299,9 +405,9 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
   <div class="contact-bar">
     ${data.contacts.email ? `<span>✉ ${esc(data.contacts.email)}</span>` : ""}
     ${data.contacts.phone ? `<span>☏ ${esc(data.contacts.phone)}</span>` : ""}
-    ${data.contacts.github ? `<span>⌥ ${esc(data.contacts.github)}</span>` : ""}
-    ${data.contacts.linkedin ? `<span>in ${esc(data.contacts.linkedin)}</span>` : ""}
-    ${data.contacts.portfolio ? `<span>⊕ ${esc(data.contacts.portfolio)}</span>` : ""}
+    ${data.contacts.github ? `<a href="${esc(data.contacts.github.startsWith("http") ? data.contacts.github : "https://" + data.contacts.github)}">GitHub</a>` : ""}
+    ${data.contacts.linkedin ? `<a href="${esc(data.contacts.linkedin.startsWith("http") ? data.contacts.linkedin : "https://" + data.contacts.linkedin)}">LinkedIn</a>` : ""}
+    ${data.contacts.portfolio ? `<a href="${esc(data.contacts.portfolio.startsWith("http") ? data.contacts.portfolio : "https://" + data.contacts.portfolio)}">Portfolio</a>` : ""}
   </div>
   <hr>
   <div class="body">
@@ -331,9 +437,9 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
       <div class="section-title">Contact Details</div>
       ${data.contacts.phone ? `<p>☏ ${esc(data.contacts.phone)}</p>` : ""}
       ${data.contacts.email ? `<p>✉ ${esc(data.contacts.email)}</p>` : ""}
-      ${data.contacts.github ? `<p>⌥ GitHub: ${esc(data.contacts.github.split("/").pop() ?? "")}</p>` : ""}
-      ${data.contacts.linkedin ? `<p>in LinkedIn: ${esc(data.contacts.linkedin.split("/in/")[1] ?? "")}</p>` : ""}
-      ${data.contacts.portfolio ? `<p>⊕ Portfolio: ${esc(data.contacts.portfolio.replace("https://", ""))}</p>` : ""}
+      ${data.contacts.github ? `<p><strong>GitHub:</strong> <a href="${esc(data.contacts.github.startsWith("http") ? data.contacts.github : "https://" + data.contacts.github)}">${esc(data.contacts.github.replace(/^https?:\/\//, ""))}</a></p>` : ""}
+      ${data.contacts.linkedin ? `<p><strong>LinkedIn:</strong> <a href="${esc(data.contacts.linkedin.startsWith("http") ? data.contacts.linkedin : "https://" + data.contacts.linkedin)}">${esc(data.contacts.linkedin.replace(/^https?:\/\//, ""))}</a></p>` : ""}
+      ${data.contacts.portfolio ? `<p><strong>Portfolio:</strong> <a href="${esc(data.contacts.portfolio.startsWith("http") ? data.contacts.portfolio : "https://" + data.contacts.portfolio)}">${esc(data.contacts.portfolio.replace(/^https?:\/\//, ""))}</a></p>` : ""}
     </div>
     <div class="right">
       <div class="section-title">Projects</div>
@@ -398,6 +504,11 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
       {/* ATS Score + Keywords */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col items-center justify-center gap-3">
+          {result.jobAlignment && (
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-100 text-violet-800 border border-violet-200">
+              Projects: {result.jobAlignment}
+            </span>
+          )}
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">ATS Score</p>
           <svg width="120" height="120" viewBox="0 0 120 120">
             <circle cx="60" cy="60" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="10" />

@@ -1,19 +1,37 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import Navbar from "../components/landing/hero";
 import ResumeInput from "../components/optimizer/ResumeInput";
 import AnalysisCard from "../components/optimizer/AnalysisCard";
 import OptimizedResumeCard from "../components/optimizer/OptimizedResumeCard";
 import ReviewScoreCard from "../components/optimizer/ReviewScoreCard";
+import MockInterviewSection from "../components/optimizer/MockInterviewSection";
+import ResultsSummaryBanner from "../components/optimizer/ResultsSummaryBanner";
 import HistoryList from "../components/optimizer/HistoryList";
 import { RunActionButton } from "../components/watermelon-ui/run-action-button";
 import { ContinuousTabs } from "../components/watermelon-ui/continuous-tabs";
 import { PricingWidget } from "../components/watermelon-ui/pricing-widget";
-import { RadialCarousel } from "../components/watermelon-ui/radial-carousel";
-import ResumeBuilderInput from "../components/builder/ResumeBuilderInput";
 import GeneratedResumeCard, { type BuilderResult } from "../components/builder/GeneratedResumeCard";
-import { Sparkles, ArrowRight, Brain, Wand2, Star, Zap } from "lucide-react";
+import {
+  Sparkles,
+  ArrowRight,
+  Sparkle,
+  ClipboardMinus,
+  Wrench,
+  Award,
+  Shield,
+  CheckCircle,
+  Zap,
+  Target,
+  Mic2,
+  BarChart3,
+  FileStack,
+  ShieldCheck,
+  Mic,
+  Brain,
+} from "lucide-react";
 import {
   FaInbox,
   FaMagnifyingGlass,
@@ -22,6 +40,7 @@ import {
 } from "react-icons/fa6";
 import { BsFileTextFill } from "react-icons/bs";
 import { TbClockHour12Filled } from "react-icons/tb";
+import { color } from "framer-motion";
 
 interface PipelineResult {
   fileUrl: string | null;
@@ -39,6 +58,10 @@ interface PipelineResult {
     impact_improvement: string;
     keyword_relevance: string;
     final_summary: string;
+    placement_readiness_score: number;
+    placement_summary: string;
+    role_strengths: string[];
+    role_gaps: string[];
   };
   runId: string | null;
 }
@@ -46,28 +69,90 @@ interface PipelineResult {
 const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Paste Your Resume",
-    desc: "Copy & paste your raw resume text (or upload a PDF). No formatting needed.",
-    icon: "📋",
+    title: "Paste or upload",
+    desc: "Resume text or PDF/DOCX. We extract clean text server-side (no raw PDF binary in the prompt).",
+    icon: <ClipboardMinus />,
   },
   {
     step: "02",
-    title: "AI Analyzes It",
-    desc: "Groq's llama-3.3-70b extracts skills, spots weak phrasing & keyword gaps.",
-    icon: "🧠",
+    title: "Add a target job",
+    desc: "Optional job description tailors keyword gaps, rewriting, and reviewer feedback to that role.",
+    icon: <Target />,
   },
   {
     step: "03",
-    title: "Gets Optimized",
-    desc: "Our Optimizer agent rewrites it for clarity, ATS compliance & impact.",
-    icon: "✨",
+    title: "Analyzer agent",
+    desc: "Groq LLaMA 3.3 extracts skills, weak phrasing, missing metrics, and structure issues.",
+    icon: <Wrench />,
   },
   {
     step: "04",
-    title: "Reviewed & Scored",
-    desc: "HuggingFace's gpt-oss-120b reviews the result and gives a quality score.",
-    icon: "🏆",
+    title: "Optimizer agent",
+    desc: "Rewrites for clarity and ATS-friendly structure without inventing employers or fake metrics.",
+    icon: <Sparkle />,
   },
+  {
+    step: "05",
+    title: "Reviewer + readiness",
+    desc: "Hugging Face model scores the lift and estimates interview readiness with strengths and gaps.",
+    icon: <Award />,
+  },
+  {
+    step: "06",
+    title: "Interview prep",
+    desc: "Generate role-aware mock questions and answer frameworks from your optimized resume.",
+    icon: <Mic />,
+  },
+];
+
+const WHY_HIRELENS = [
+  {
+    icon: Target,
+    title: "ATS-Optimized Output",
+    desc: "Every resume is tailored to pass Applicant Tracking Systems. We match keywords, format structure, and optimize readability for automated scanners.",
+  },
+  {
+    icon: Shield,
+    title: "Accurate & Real Data",
+    desc: "We don't fabricate content. Our AI extracts real projects, skills, and achievements from your portfolio and enhances them — nothing made up.",
+  },
+  {
+    icon: BarChart3,
+    title: "High ATS Score Guaranteed",
+    desc: "Our multi-agent pipeline ensures your resume scores 85+ on ATS checkers. We optimize for keyword density, formatting, and professional impact.",
+  },
+  {
+    icon: Award,
+    title: "AI-Reviewed Quality",
+    desc: "Every generated resume is reviewed by a second AI agent that checks for clarity, impact, and completeness — like having a peer review built in.",
+  },
+];
+
+const PLATFORM_FEATURES = [
+  {
+    title: "Job-specific optimization",
+    desc: "Paste a JD to align keyword gaps, rewrites, and reviewer commentary with the role you want.",
+    icon: Target,
+    color: "text-indigo-600 bg-indigo-50 border-indigo-100",
+  },
+  {
+    title: "Readiness estimate",
+    desc: "See optimization score plus a separate readiness signal, with strengths and gaps called out clearly.",
+    icon: ShieldCheck,
+    color: "text-emerald-600 bg-emerald-50 border-emerald-100",
+  },
+  {
+    title: "Mock interview prep",
+    desc: "Six tailored questions with bullet answer frameworks grounded in your resume (no scripts).",
+    icon: Mic2,
+    color: "text-rose-600 bg-rose-50 border-rose-100",
+  },
+  {
+    title: "Resume from portfolio",
+    desc: "Builder takes portfolio + GitHub + LinkedIn URLs, infers frontend/backend from the JD, and prioritizes matching repos.",
+    icon: FileStack,
+    color: "text-amber-600 bg-amber-50 border-amber-100",
+  }
 ];
 
 // Pipeline steps for the RunActionButton
@@ -80,39 +165,6 @@ const PIPELINE_STEPS = [
   { id: 6, label: "Scoring Results", icon: FaAward },
 ];
 
-// Model showcase for RadialCarousel
-const MODEL_GALLERY = [
-  {
-    id: "groq",
-    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Groq_logo.svg/1200px-Groq_logo.svg.png",
-    title: "Groq LLaMA 3.3 70B",
-  },
-  {
-    id: "hf",
-    url: "https://huggingface.co/front/assets/huggingface_logo-noborder.svg",
-    title: "HuggingFace GPT-OSS",
-  },
-  {
-    id: "gemini",
-    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Google_Gemini_logo.svg/1200px-Google_Gemini_logo.svg.png",
-    title: "Google Gemini",
-  },
-  {
-    id: "mongo",
-    url: "https://www.svgrepo.com/show/331488/mongodb.svg",
-    title: "MongoDB Atlas",
-  },
-  {
-    id: "cloudinary",
-    url: "https://res.cloudinary.com/cloudinary/image/upload/c_scale,w_300/v1/logo/for_white_bg/cloudinary_logo_for_white_bg.svg",
-    title: "Cloudinary",
-  },
-  {
-    id: "nextjs",
-    url: "https://www.svgrepo.com/show/354113/nextjs-icon.svg",
-    title: "Next.js 16",
-  },
-];
 
 // Custom pricing plans for HireLens
 const HIRELENS_PLANS = {
@@ -132,7 +184,8 @@ const HIRELENS_PLANS = {
 const RESULT_TABS = [
   { id: "analysis", label: "Analysis" },
   { id: "optimized", label: "Optimized" },
-  { id: "review", label: "Review Score" },
+  { id: "review", label: "Review" },
+  { id: "interview", label: "Interview prep" },
 ];
 
 export default function Home() {
@@ -148,14 +201,29 @@ export default function Home() {
   const [builderError, setBuilderError] = useState<string | null>(null);
   const builderResultRef = useRef<HTMLDivElement>(null);
 
-  async function handleSubmit(resumeText: string, file?: string) {
+  const [lastResumeText, setLastResumeText] = useState("");
+  const [lastJobDescription, setLastJobDescription] = useState("");
+
+  async function handleSubmit(
+    resumeText: string,
+    file?: string,
+    fileName?: string,
+    jobDescription?: string
+  ) {
     setApiError(null);
     setResult(null);
     setLoading(true);
 
     try {
-      const body: { resumeText: string; file?: string } = { resumeText };
+      const body: {
+        resumeText: string;
+        file?: string;
+        fileName?: string;
+        jobDescription?: string;
+      } = { resumeText };
       if (file) body.file = file;
+      if (fileName) body.fileName = fileName;
+      if (jobDescription) body.jobDescription = jobDescription;
 
       const res = await fetch("/api/pipeline", {
         method: "POST",
@@ -170,6 +238,8 @@ export default function Home() {
       }
 
       setResult(data as PipelineResult);
+      setLastResumeText(resumeText);
+      setLastJobDescription(jobDescription ?? "");
       setActiveTab("analysis");
 
       // Scroll to results
@@ -183,7 +253,13 @@ export default function Home() {
     }
   }
 
-  async function handleBuild(portfolioUrl: string, jobDescription: string, templateId: string) {
+  async function handleBuild(
+    portfolioUrl: string,
+    jobDescription: string,
+    templateId: string,
+    githubUrl: string,
+    linkedinUrl: string
+  ) {
     setBuilderError(null);
     setBuilderResult(null);
     setBuilderLoading(true);
@@ -191,7 +267,13 @@ export default function Home() {
       const res = await fetch("/api/build-resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ portfolioUrl, jobDescription, templateId }),
+        body: JSON.stringify({
+          portfolioUrl,
+          githubUrl,
+          linkedinUrl,
+          jobDescription,
+          templateId,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Build failed.");
@@ -235,127 +317,149 @@ export default function Home() {
             <br />
             Resume Optimization
           </h1>
-          <p className="text-lg text-slate-500 max-w-2xl mx-auto mb-8 leading-relaxed animate-fade-in delay-200">
-            Our 3-agent pipeline analyzes your resume, rewrites it for ATS & clarity,
-            then scores the improvements — all in seconds.
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto mb-6 leading-relaxed animate-fade-in delay-200">
+            Three agents analyze, rewrite, and review your resume. Add a job description for tailored keywords,
+            a readiness estimate, and mock interview prep — all in one flow.
           </p>
-          <div className="flex items-center justify-center gap-4 flex-wrap animate-fade-in delay-300">
-            <a
-              href="#optimizer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-lg shadow-indigo-200 hover:shadow-xl transition-all active:scale-[0.98]"
-            >
-              <Sparkles size={15} />
-              Optimize My Resume
-              <ArrowRight size={14} />
-            </a>
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-sm hover:border-indigo-200 hover:text-indigo-600 transition-all"
-            >
-              How it works
-            </a>
-          </div>
-
-          {/* Stat pills */}
-          <div className="flex flex-wrap justify-center gap-6 mt-12 animate-fade-in delay-400">
+          <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-2xl mx-auto animate-fade-in delay-300">
             {[
-              { label: "AI Agents", value: "3×", icon: Brain },
-              { label: "Avg. Score Boost", value: "68pts", icon: Star },
-              { label: "Models Used", value: "Groq + HF", icon: Wand2 },
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="flex items-center gap-2 text-sm text-slate-500 bg-white rounded-xl px-4 py-2.5 border border-slate-200 shadow-sm">
-                <Icon size={14} className="text-indigo-500" />
-                <span className="font-bold text-slate-900">{value}</span>
-                <span>{label}</span>
-              </div>
+              { label: "Job targeting", Icon: Target },
+              { label: "Readiness score", Icon: ShieldCheck },
+              { label: "Mock interview", Icon: Mic2 },
+              { label: "3× AI Agents", Icon: Brain },
+            ].map(({ label, Icon }) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-indigo-800 bg-indigo-50 border border-indigo-100"
+              >
+                <Icon size={13} className="text-indigo-600" />
+                {label}
+              </span>
             ))}
           </div>
-        </div>
 
-        {/* ── Radial Carousel — AI Model Showcase ── */}
-        <div className="relative max-w-3xl mx-auto px-4 pb-12">
-          <p className="text-center text-xs font-semibold uppercase tracking-widest text-slate-400 mb-6">
-            Powered by · Click to explore
-          </p>
-          <RadialCarousel
-            items={MODEL_GALLERY}
-            radius={220}
-            thumbnailSize={90}
-            centerSize={340}
-          />
+          {/* ── Two Highlighted Feature Cards ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto mb-12 animate-fade-in delay-300">
+            {/* Resume Builder Card */}
+            <Link href="/builder" className="group relative">
+              <div className="relative overflow-hidden rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-8 text-left transition-all hover:shadow-xl hover:shadow-violet-100 hover:border-violet-300 hover:-translate-y-1">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-violet-100 rounded-full blur-2xl opacity-50 -translate-y-8 translate-x-8" />
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-200 group-hover:scale-110 transition-transform">
+                    <Zap size={22} className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    Resume Builder
+                    <span className="ml-2 text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
+                      1-Click
+                    </span>
+                  </h3>
+                  <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                    Paste your portfolio link & job description — AI builds a professional,
+                    ATS-optimized resume from your real projects & skills.
+                  </p>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-600 group-hover:gap-3 transition-all">
+                    Build Now <ArrowRight size={14} />
+                  </span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Resume Optimizer Card */}
+            <a href="#optimizer" className="group relative">
+              <div className="relative overflow-hidden rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-8 text-left transition-all hover:shadow-xl hover:shadow-indigo-100 hover:border-indigo-300 hover:-translate-y-1">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100 rounded-full blur-2xl opacity-50 -translate-y-8 translate-x-8" />
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform">
+                    <Sparkles size={22} className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    Resume Optimizer
+                    <span className="ml-2 text-xs font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                      AI Pipeline
+                    </span>
+                  </h3>
+                  <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                    Paste your existing resume — our 3-agent pipeline analyzes, rewrites,
+                    and scores it for maximum ATS compliance and impact.
+                  </p>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 group-hover:gap-3 transition-all">
+                    Optimize Now <ArrowRight size={14} />
+                  </span>
+                </div>
+              </div>
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* ── Resume Builder ── */}
-      <section id="builder" className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 border border-violet-100 text-violet-600 text-xs font-semibold mb-4">
-            <Zap size={12} />
-            1-Click Resume Builder
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Build Your Resume Instantly</h2>
-          <p className="text-slate-500 text-sm mt-2 max-w-xl mx-auto">
-            Paste your portfolio link (GitHub, personal site, LinkedIn) + job description → AI writes a tailored, ATS-optimized resume in seconds.
+
+ {/* ── Why HireLens ── */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+        <div className="text-center mb-12">
+          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-2">
+            Why Choose Us
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">
+            Not Just Another Resume Tool
+          </h2>
+          <p className="text-slate-500 text-sm max-w-xl mx-auto">
+            We don&apos;t just slap keywords onto your resume. Our AI deeply analyzes your real
+            portfolio data and crafts accurate, ATS-beating resumes with genuine achievements.
           </p>
         </div>
-
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-slate-100 bg-gradient-to-r from-violet-50/60 to-indigo-50/30">
-            <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-1">AI Resume Builder</p>
-            <h3 className="text-xl font-bold text-slate-900">Build from Your Portfolio</h3>
-            <p className="text-sm text-slate-500 mt-1">We read your portfolio + the job description to craft a resume that beats ATS filters.</p>
-          </div>
-          <div className="p-8">
-            <ResumeBuilderInput onSubmit={handleBuild} loading={builderLoading} />
-          </div>
-
-          {builderLoading && (
-            <div className="px-8 pb-8 flex flex-col items-center gap-3">
-              <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">Building Your Resume…</p>
-              <RunActionButton steps={[
-                { id: 1, label: "Reading Portfolio", icon: FaInbox },
-                { id: 2, label: "Analyzing Job", icon: FaMagnifyingGlass },
-                { id: 3, label: "Matching Keywords", icon: BsFileTextFill },
-                { id: 4, label: "Writing Resume", icon: FaWandMagicSparkles },
-                { id: 5, label: "Scoring ATS", icon: TbClockHour12Filled },
-                { id: 6, label: "Finalizing", icon: FaAward },
-              ]} />
-            </div>
-          )}
-
-          {builderError && (
-            <div className="mx-8 mb-8 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-              ⚠️ {builderError}
-            </div>
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {WHY_HIRELENS.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.title}
+                className={`rounded-2xl border bg-violet-50 border-violet-100 p-6 hover:shadow-md transition-all animate-slide-up`}
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm border border-indigo-100 flex-shrink-0`}>
+                    <Icon size={18} className="text-violet-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-1.5">{item.title}</h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {builderResult && (
-          <div ref={builderResultRef} className="mt-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-px flex-1 bg-slate-200" />
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 px-2">Your Generated Resume</p>
-              <div className="h-px flex-1 bg-slate-200" />
+        {/* Trust indicators */}
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-8 text-sm text-slate-400">
+          {[
+            { icon: CheckCircle, label: "Real data from your portfolio" },
+            { icon: Shield, label: "No fabricated content" },
+            { icon: Target, label: "85+ ATS score average" },
+          ].map(({ icon: Icon, label }) => (
+            <div key={label} className="flex items-center gap-2">
+              <Icon size={15} className="text-violet-500" />
+              <span>{label}</span>
             </div>
-            <GeneratedResumeCard result={builderResult} />
-          </div>
-        )}
+          ))}
+        </div>
       </section>
 
       {/* ── How It Works ── */}
       <section id="how-it-works" className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
         <div className="text-center mb-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-2">The Process</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-2 mt-4">The Process</p>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">How It Works</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {HOW_IT_WORKS.map((item, i) => (
             <div
               key={item.step}
               className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all animate-slide-up"
               style={{ animationDelay: `${i * 0.1}s` }}
             >
-              <div className="text-3xl mb-3">{item.icon}</div>
+              <div className="text-3xl mb-3 text-grey-200 w-10 h-10 rounded-xl border flex items-center justify-center mb-3 text-violet-500">{item.icon}</div>
               <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">Step {item.step}</p>
               <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
               <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
@@ -365,7 +469,7 @@ export default function Home() {
       </section>
 
       {/* ── Pricing ── */}
-      <section id="pricing" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
+      <section id="pricing" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 mt-4">
         <div className="text-center mb-10">
           <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-2">Plans</p>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Simple Pricing</h2>
@@ -381,13 +485,25 @@ export default function Home() {
       </section>
 
       {/* ── Optimizer ── */}
-      <section id="optimizer" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
+      <section id="optimizer" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 pt-6">
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
           {/* Section header */}
           <div className="px-8 py-6 border-b border-slate-100 bg-gradient-to-r from-indigo-50/60 to-violet-50/30">
             <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">AI Resume Optimizer</p>
             <h2 className="text-xl font-bold text-slate-900">Optimize Your Resume</h2>
-            <p className="text-sm text-slate-500 mt-1">Paste your resume text below and our 3-agent AI pipeline will analyze, rewrite, and score it.</p>
+            <p className="text-sm text-slate-500 mt-1 max-w-3xl">
+              Run the full pipeline: analysis → optimized draft → review with readiness + strengths/gaps →{" "}
+              <span className="text-slate-700 font-medium">Interview prep</span> tab for mock questions.
+              Use <span className="text-indigo-700 font-medium">Job-specific mode</span> when you have a posting.
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium text-slate-600">
+              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Analyzer (Groq)</li>
+              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Optimizer (Groq)</li>
+              <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Reviewer (Hugging Face)</li>
+              <li className="px-2 py-1 rounded-md bg-indigo-100/80 border border-indigo-200 text-indigo-800">
+                + Interview (Groq)
+              </li>
+            </ul>
           </div>
 
           <div className="p-8">
@@ -419,17 +535,33 @@ export default function Home() {
               <div className="h-px flex-1 bg-slate-200" />
             </div>
 
-            {/* ContinuousTabs to switch between result views */}
-            <div className="flex justify-center">
+            <ResultsSummaryBanner
+              improvementScore={result.review.improvement_score}
+              placementReadiness={result.review.placement_readiness_score}
+              jobTargeted={lastJobDescription.trim().length > 0}
+              onGoInterview={() => {
+                setActiveTab("interview");
+                setTimeout(() => {
+                  resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 80);
+              }}
+            />
+
+            <p className="text-center text-xs text-slate-400 px-2">
+              Use the tabs to switch views. Interview prep generates questions on demand (separate API call).
+            </p>
+
+            {/* ContinuousTabs — controlled so &quot;Try Now&quot; / new runs reset correctly */}
+            <div className="flex justify-center overflow-x-auto pb-1">
               <ContinuousTabs
                 tabs={RESULT_TABS}
                 defaultActiveId="analysis"
+                activeId={activeTab}
                 onChange={(id) => setActiveTab(id)}
               />
             </div>
 
-            {/* Tab content */}
-            <div className="mt-6">
+            <div className="mt-6" id="results-tabs">
               {activeTab === "analysis" && (
                 <AnalysisCard analysis={result.analysis} />
               )}
@@ -438,6 +570,13 @@ export default function Home() {
               )}
               {activeTab === "review" && (
                 <ReviewScoreCard review={result.review} />
+              )}
+              {activeTab === "interview" && (
+                <MockInterviewSection
+                  resumeText={lastResumeText.trim() || result.optimizedResume}
+                  optimizedResume={result.optimizedResume}
+                  jobDescription={lastJobDescription}
+                />
               )}
             </div>
 
@@ -467,6 +606,31 @@ export default function Home() {
         <HistoryList />
       </div>
 
+
+      {/* ── Platform features (UI map of product) ── */}
+      <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 mt-4">
+        <div className="text-center mb-10">
+          <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-2">Product</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">What HireLens Offers</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5">
+          {PLATFORM_FEATURES.map(({ title, desc, icon: Icon, color }) => (
+            <div
+              key={title}
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:border-violet-200 hover:shadow-md transition-all"
+            >
+              <div
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center mb-3 ${color}`}
+              >
+                <Icon size={20} strokeWidth={2} />
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-1.5">{title}</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-slate-100 bg-white py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-400">
@@ -476,8 +640,10 @@ export default function Home() {
             </div>
             <span className="font-medium text-slate-600">HireLens</span> · AI Resume Optimizer
           </div>
-          <p>Built by Team Velox · CHARUSAT</p>
-          <p>Powered by Groq · HuggingFace · Cloudinary · MongoDB</p>
+          <p>Built by Velox</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <p>Powered by Groq · HuggingFace · Cloudinary · MongoDB</p>
+          </div>
         </div>
       </footer>
     </div>
