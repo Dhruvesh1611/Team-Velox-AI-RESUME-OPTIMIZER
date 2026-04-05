@@ -13,7 +13,10 @@ Task:
 
 Hard constraints:
 - Do not invent or hallucinate any employers, job titles, dates, degrees, certifications, tools, awards, or metrics.
-- Do not fabricate measurable results. If the original resume lacks numbers, improve phrasing without adding fake data.
+- Do not fabricate measurable results. Include numeric metrics only when explicitly present in the source resume.
+- If metrics are not present, use strong qualitative impact language instead (for example: optimized application performance, enhanced user experience and responsiveness, improved system efficiency and scalability, streamlined workflows and reduced complexity, increased reliability and maintainability).
+- Ensure every bullet point communicates impact (quantitative when available, otherwise qualitative).
+- Never use vague phrasing such as "worked on", "responsible for", or "involved in". Rewrite using strong action verbs like Developed, Engineered, Implemented, Optimized, Designed.
 - Preserve the candidate's factual background.
 - Keep the output professional, concise, and ATS-friendly.
 - Avoid meta commentary and do not mention the analysis.

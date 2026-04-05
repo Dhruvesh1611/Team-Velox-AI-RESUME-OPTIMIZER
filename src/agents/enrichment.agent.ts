@@ -11,7 +11,11 @@ Improve and enrich the resume content.
 RULES:
 - Expand weak bullet points into strong professional statements
 - Add technical depth (architecture, tools, decisions)
-- Add realistic metrics ONLY if implied (DO NOT hallucinate fake numbers)
+- NEVER fabricate numeric metrics (%, users, revenue, counts, performance numbers)
+- Include measurable data only when explicitly present in source text
+- If measurable data is missing, use qualitative impact language (for example: optimized application performance, enhanced user experience and responsiveness, improved system efficiency and scalability, streamlined workflows and reduced complexity, increased reliability and maintainability)
+- Ensure every bullet communicates impact (quantitative when available, otherwise qualitative)
+- Never use vague phrasing such as "worked on", "responsible for", or "involved in". Rewrite with strong action verbs like Developed, Engineered, Implemented, Optimized, Designed.
 - Improve clarity and readability
 - Keep content believable and consistent
 - Do NOT invent fake companies, roles, or achievements

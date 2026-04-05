@@ -502,7 +502,7 @@ export default function Home() {
               <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Optimizer</li>
               <li className="px-2 py-1 rounded-md bg-white/80 border border-slate-200">Reviewer</li>
               <li className="px-2 py-1 rounded-md bg-indigo-100/80 border border-indigo-200 text-indigo-800">
-                + Interview (Groq)
+                 Interview 
               </li>
             </ul>
           </div>

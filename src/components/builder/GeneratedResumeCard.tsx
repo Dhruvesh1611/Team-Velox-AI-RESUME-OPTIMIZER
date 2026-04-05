@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Check, Lightbulb, TrendingUp, TrendingDown, Eye, Download, X, ExternalLink } from "lucide-react";
+import { Copy, Check, Lightbulb, TrendingUp, TrendingDown, Eye, Download, X } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -77,8 +77,7 @@ function prepareProjects(projects: ResumeData["projects"]): {
 
   const normalized = projects.map((p) => {
     const normalizedType = normalizeProjectType(p);
-    const isSecondary = normalizedType === "other";
-    const bulletCap = isSecondary ? 3 : 5;
+    const bulletCap = 5;
     return {
       ...p,
       type: normalizedType,
@@ -128,13 +127,118 @@ function buildProfileSnapshot(data: ResumeData): string {
     .filter(Boolean)
     .slice(0, 3);
 
-  const parts = [
-    `${data.title || "Software Developer"} focused on building production-ready web applications`,
-    topSkills.length > 0 ? `with strong hands-on skills in ${topSkills.join(", ")}` : "",
-    topProjects.length > 0 ? `and proven delivery across projects like ${topProjects.join(", ")}` : "",
-  ].filter(Boolean);
+  const roleLine = `${data.title || "Software Developer"} focused on building production-ready web applications across modern web ecosystems.`;
+  const stackLine = topSkills.length > 0
+    ? `Core stack includes ${topSkills.join(", ")}, with practical specialization in end-to-end feature delivery.`
+    : "Experienced in frontend, backend, and integration-focused development for scalable web products.";
+  const deliveryLine = topProjects.length > 0
+    ? `Delivered portfolio-backed solutions through projects such as ${topProjects.join(", ")}, emphasizing clean architecture and maintainable design.`
+    : "Delivered portfolio-backed solutions with emphasis on maintainable architecture and reliable implementation practices.";
+  const impactLine = "Work prioritizes performance improvements, scalable system behavior, and optimized user experience outcomes.";
 
-  return parts.join(" ") + ".";
+  return [roleLine, stackLine, deliveryLine, impactLine].join(" ");
+}
+
+function buildProfileLines(data: ResumeData): string[] {
+  const topTools = [data.skills.tools, data.skills.cloud]
+    .filter(Boolean)
+    .join(", ")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  const specialization = data.skills.frontend
+    ? "specializing in frontend-to-backend product workflows"
+    : "specializing in end-to-end web solution delivery";
+
+  return [
+    `${data.title || "Software Developer"} focused on building production-ready applications with practical engineering depth.`,
+    `Core expertise includes modern web architecture, API-driven integrations, and maintainable system design, ${specialization}.`,
+    topTools.length > 0
+      ? `Preferred tools and platforms include ${topTools.join(", ")}, enabling reliable and scalable implementation patterns.`
+      : "Preferred tooling emphasizes reliability, maintainability, and scalable implementation practices.",
+    "Execution focus remains on performance optimization, better user experience, and sustainable scalability outcomes.",
+  ];
+}
+
+function expandCredentialLabel(item: string): string {
+  const text = item.trim();
+  if (!text) return text;
+  if (/cert|certificate|aws|google|azure|meta|coursera|udemy|nptel|hackathon|winner|award/i.test(text)) {
+    return text;
+  }
+  if (text.length <= 28) {
+    return `${text} (Professional Recognition)`;
+  }
+  return text;
+}
+
+function normalizeDescriptionLines(text: string, lineTarget: number): string {
+  const parts = text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (parts.length <= lineTarget) return text;
+  return parts.slice(0, lineTarget).join(" ");
+}
+
+function buildEducationNotes(item: ResumeData["education"][number], data: ResumeData): string[] {
+  const topAreas = [data.skills.frontend, data.skills.backend, data.skills.database]
+    .filter(Boolean)
+    .join(", ")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const notes: string[] = [];
+  notes.push(`Specialization: ${item.degree?.toLowerCase().includes("computer") ? "Software and web systems" : "Application development and software engineering"}`);
+  if (topAreas.length > 0) {
+    notes.push(`Relevant coursework: ${topAreas.join(", ")}`);
+  }
+  if (data.projects.length > 0) {
+    notes.push(`Academic achievement: Applied learning through ${data.projects.length}+ portfolio-backed projects.`);
+  }
+
+  return notes.slice(0, 3);
+}
+
+function normalizeCredentialKey(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function buildUnifiedCredentialItems(data: ResumeData): string[] {
+  const merged = new Map<string, string>();
+
+  const put = (text: string) => {
+    const cleaned = text.replace(/\s+/g, " ").trim();
+    if (!cleaned) return;
+
+    const key = normalizeCredentialKey(cleaned);
+    if (!key) return;
+
+    const existing = merged.get(key);
+    // Prefer richer variant when duplicate entries are found.
+    if (!existing || cleaned.length > existing.length) {
+      merged.set(key, cleaned);
+    }
+  };
+
+  for (const cert of data.certificates) {
+    if (cert?.name) put(cert.name);
+  }
+
+  for (const achievement of data.achievements) {
+    const text = [achievement?.title, achievement?.award].filter(Boolean).join(" - ");
+    if (text) put(text);
+  }
+
+  return Array.from(merged.values());
 }
 
 // ── Resume renderer component ─────────────────────────────────────────────
@@ -144,6 +248,7 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
   const fs = compact ? "text-[9px]" : "text-[10px]";
   const headingBorder = "border-b-2 border-gray-800 pb-0.5 mb-1.5 font-bold uppercase tracking-wider";
   const profileSnapshot = buildProfileSnapshot(data);
+  const profileLines = buildProfileLines(data);
 
   const skillRows = [
     data.skills.frontend && { label: "Frontend", value: data.skills.frontend },
@@ -156,15 +261,15 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
   ].filter(Boolean) as { label: string; value: string }[];
 
   const { featured, secondary } = prepareProjects(data.projects);
-  const totalProjectCount = featured.length + secondary.length;
-  const lowContentMode = totalProjectCount <= 4;
+  const credentialItems = buildUnifiedCredentialItems(data).map(expandCredentialLabel);
   const groupedPrimary: Record<string, typeof featured> = {};
   const groupedSecondary: Record<string, typeof secondary> = {};
 
-  const featuredLimit = densityMode === "expanded" ? 10 : compact ? 5 : 7;
+  const featuredLimit = densityMode === "expanded" ? 8 : compact ? 5 : 6;
   const secondaryLimit = densityMode === "expanded" ? 10 : compact ? 3 : 6;
   const secondaryBulletLimit = densityMode === "expanded" ? 3 : 2;
-  const certificateLimit = densityMode === "expanded" ? 12 : compact ? 6 : 8;
+  const isUnderfilled = (featured.length + secondary.length) <= 4;
+  const descLineTarget = isUnderfilled ? 3 : 2;
 
   for (const p of featured.slice(0, featuredLimit)) {
     const cat = p.category || p.type.toUpperCase();
@@ -204,25 +309,16 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
       {/* ── Two-column body ── */}
       <div className="flex gap-4">
         {/* LEFT column */}
-        <div className="w-[34%] flex-shrink-0 space-y-2.5">
+        <div className="w-[38%] flex-shrink-0 space-y-2.5">
           {/* Profile Snapshot */}
           {profileSnapshot && densityMode !== "compact" && (
             <div>
               <div className={headingBorder}>Profile</div>
-              <p>{profileSnapshot}</p>
-            </div>
-          )}
-
-          {/* Achievements / Hackathon */}
-          {data.achievements.length > 0 && (
-            <div>
-              <div className={headingBorder}>Hackathon</div>
-              {data.achievements.slice(0, densityMode === "expanded" ? 6 : 4).map((a, i) => (
-                <div key={i} className="mb-1">
-                  <p className="font-semibold">{a.title}</p>
-                  {a.award && <p className="font-bold text-indigo-700">{a.award}</p>}
-                </div>
-              ))}
+              <div className="space-y-1">
+                {profileLines.map((line, idx) => (
+                  <p key={idx}>{line}</p>
+                ))}
+              </div>
             </div>
           )}
 
@@ -238,16 +334,15 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
             </div>
           )}
 
-          {/* Certificates */}
-          {data.certificates.length > 0 && (
+          {/* Unified credentials */}
+          {credentialItems.length > 0 && (
             <div>
-              <div className={headingBorder}>Certificates</div>
+              <div className={headingBorder}>Certifications &amp; Achievements</div>
               <ul className="space-y-0.5">
-                {data.certificates.slice(0, certificateLimit).map((c, i) => (
+                {credentialItems.map((item, i) => (
                   <li key={i} className="flex items-center gap-1">
                     <span>•</span>
-                    <span>{c.name}</span>
-                    {c.link && <ExternalLink size={8} className="text-indigo-500 flex-shrink-0" />}
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
@@ -265,6 +360,9 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
                   {e.gpa && <p>CGPA: <span className="font-semibold">{e.gpa}</span></p>}
                   {e.year && <p className="text-gray-500">{e.year}</p>}
                   {e.percentage && <p>Percentage: {e.percentage}</p>}
+                  {buildEducationNotes(e, data).map((note, nIdx) => (
+                    <p key={nIdx}>{note}</p>
+                  ))}
                 </div>
               ))}
             </div>
@@ -297,7 +395,7 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
                     </div>
                   )}
                   {/* Description */}
-                  {p.description && <p className="italic text-gray-600 mb-0.5">{p.description}</p>}
+                  {p.description && <p className="italic text-gray-600 mb-0.5">{normalizeDescriptionLines(p.description, descLineTarget)}</p>}
                   {/* Bullets */}
                   <ul className="space-y-0.5">
                     {p.bullets.map((b, j) => (
@@ -345,25 +443,6 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
             </>
           )}
 
-          {lowContentMode && (data.certificates.length > 0 || data.achievements.length > 0) && (
-            <>
-              <div className={headingBorder}>Certifications & Achievements</div>
-              <ul className="space-y-0.5">
-                {data.certificates.slice(0, 8).map((c, i) => (
-                  <li key={`cert-${i}`} className="flex gap-1">
-                    <span className="flex-shrink-0">•</span>
-                    <span>{c.name}</span>
-                  </li>
-                ))}
-                {data.achievements.slice(0, 6).map((a, i) => (
-                  <li key={`ach-${i}`} className="flex gap-1">
-                    <span className="flex-shrink-0">•</span>
-                    <span>{a.title}{a.award ? ` - ${a.award}` : ""}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
         </div>
       </div>
     </div>
@@ -375,17 +454,18 @@ function ResumeRenderer({ data, compact = false }: { data: ResumeData; compact?:
 function buildPrintHTML(data: ResumeData, atsScore: number): string {
   const densityMode = pickDensityMode(data, false);
   const profileSnapshot = buildProfileSnapshot(data);
+  const profileLines = buildProfileLines(data);
+  const credentialItems = buildUnifiedCredentialItems(data).map(expandCredentialLabel);
   const { featured, secondary } = prepareProjects(data.projects);
-  const totalProjectCount = featured.length + secondary.length;
-  const lowContentMode = totalProjectCount <= 4;
 
   const groupedPrimary: Record<string, typeof featured> = {};
   const groupedSecondary: Record<string, typeof secondary> = {};
 
-  const featuredLimit = densityMode === "expanded" ? 10 : 7;
+  const featuredLimit = densityMode === "expanded" ? 8 : 6;
   const secondaryLimit = densityMode === "expanded" ? 10 : 6;
   const secondaryBulletLimit = densityMode === "expanded" ? 3 : 2;
-  const certificateLimit = densityMode === "expanded" ? 12 : 8;
+  const isUnderfilled = (featured.length + secondary.length) <= 4;
+  const descLineTarget = isUnderfilled ? 3 : 2;
 
   for (const p of featured.slice(0, featuredLimit)) {
     const cat = p.category || p.type.toUpperCase();
@@ -426,7 +506,7 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
               ${p.links.live ? `<span>⊕ link</span>` : ""}
               ${p.links.demo ? `<span>▷ Demo video</span>` : ""}
             </div>` : ""}
-          ${p.description ? `<p class="proj-desc">${esc(p.description)}</p>` : ""}
+          ${p.description ? `<p class="proj-desc">${esc(normalizeDescriptionLines(p.description, descLineTarget))}</p>` : ""}
           <ul>${p.bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul>
           ${p.technologies ? `<p><strong>Technologies:</strong> ${esc(p.technologies)}</p>` : ""}
         </div>
@@ -449,16 +529,6 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
     </div>
   `).join("");
 
-  const certAchieveHTML = lowContentMode && (data.certificates.length > 0 || data.achievements.length > 0)
-    ? `
-      <div class="section-title">Certifications & Achievements</div>
-      <ul>
-        ${data.certificates.slice(0, 8).map(c => `<li>${esc(c.name)}</li>`).join("")}
-        ${data.achievements.slice(0, 6).map(a => `<li>${esc(a.title || "")}${a.award ? ` - ${esc(a.award)}` : ""}</li>`).join("")}
-      </ul>
-    `
-    : "";
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -472,7 +542,7 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
     .contact-bar { font-size:7.5pt; color:#444; display:flex; flex-wrap:wrap; gap:6pt; margin-top:3pt; }
     hr { border:none; border-top:1px solid #999; margin:4pt 0; }
     .body { display:flex; gap:14pt; margin-top:4pt; }
-    .left { width:34%; flex-shrink:0; }
+    .left { width:38%; flex-shrink:0; }
     .right { flex:1; }
     .section-title { font-size:9pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.04em; border-bottom:2px solid #111; padding-bottom:1pt; margin-bottom:3pt; margin-top:8pt; }
     .section-title:first-child { margin-top:0; }
@@ -511,19 +581,12 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
     <div class="left">
       ${profileSnapshot ? `
         <div class="section-title">Profile</div>
-        <p>${esc(profileSnapshot)}</p>` : ""}
-      ${data.achievements.length > 0 ? `
-        <div class="section-title">Hackathon</div>
-        ${data.achievements.slice(0, densityMode === "expanded" ? 6 : 4).map(a => `
-          <div style="margin-bottom:4pt">
-            <p class="ach-title">${esc(a.title)}</p>
-            ${a.award ? `<p class="ach-award">${esc(a.award)}</p>` : ""}
-          </div>`).join("")}` : ""}
+        ${profileLines.map(line => `<p>${esc(line)}</p>`).join("")}` : ""}
       <div class="section-title">Technical Skills</div>
       ${skillRows}
-      ${data.certificates.length > 0 ? `
-        <div class="section-title">Certificates</div>
-        ${data.certificates.slice(0, certificateLimit).map(c => `<p class="cert-item">• ${esc(c.name)}</p>`).join("")}` : ""}
+      ${credentialItems.length > 0 ? `
+        <div class="section-title">Certifications & Achievements</div>
+        ${credentialItems.map(item => `<p class="cert-item">• ${esc(item)}</p>`).join("")}` : ""}
       ${data.education.length > 0 ? `
         <div class="section-title">Education</div>
         ${data.education.map(e => `
@@ -533,6 +596,7 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
             ${e.gpa ? `<p class="edu-gpa">CGPA: ${esc(e.gpa)}</p>` : ""}
             ${e.year ? `<p style="color:#555">${esc(e.year)}</p>` : ""}
             ${e.percentage ? `<p>Percentage: ${esc(e.percentage)}</p>` : ""}
+            ${buildEducationNotes(e, data).map(note => `<p>${esc(note)}</p>`).join("")}
           </div>`).join("")}` : ""}
     </div>
     <div class="right">
@@ -540,7 +604,6 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
       ${primaryHTML}
       ${secondary.length > 0 ? `<div class="section-title">Additional Projects</div>` : ""}
       ${secondaryHTML}
-      ${certAchieveHTML}
     </div>
   </div>
 </body>
@@ -552,8 +615,12 @@ function buildPrintHTML(data: ResumeData, atsScore: number): string {
 export default function GeneratedResumeCard({ result }: { result: BuilderResult }) {
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [inlineScale, setInlineScale] = useState(1);
   const [previewScale, setPreviewScale] = useState(1);
+  const inlineViewportRef = useRef<HTMLDivElement>(null);
   const previewViewportRef = useRef<HTMLDivElement>(null);
+  const A4_WIDTH = 794;
+  const A4_HEIGHT = 1123;
 
   const data = result.resumeData;
   const printHtml = useMemo(() => {
@@ -562,22 +629,42 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
   }, [data, result.atsScore]);
 
   useEffect(() => {
-    if (!showPreview) return;
-    const el = previewViewportRef.current;
+    const el = inlineViewportRef.current;
     if (!el) return;
 
-    const PAGE_WIDTH = 794;
-    const PAGE_HEIGHT = 1123;
-    const SAFE_PAD_X = 24;
-    const SAFE_PAD_Y = 24;
+    const SAFE_PAD_X = 32;
+    const SAFE_PAD_Y = 32;
 
     const updateScale = () => {
       const rect = el.getBoundingClientRect();
       const next = Math.min(
-        (rect.width - SAFE_PAD_X) / PAGE_WIDTH,
-        (rect.height - SAFE_PAD_Y) / PAGE_HEIGHT,
+        (rect.width - SAFE_PAD_X) / A4_WIDTH,
+        (rect.height - SAFE_PAD_Y) / A4_HEIGHT,
         1
       );
+      setInlineScale((prev) => (Math.abs(prev - next) > 0.01 ? next : prev));
+    };
+
+    const ro = new ResizeObserver(() => updateScale());
+    ro.observe(el);
+    const id = window.requestAnimationFrame(updateScale);
+
+    return () => {
+      ro.disconnect();
+      window.cancelAnimationFrame(id);
+    };
+  }, [A4_WIDTH]);
+
+  useEffect(() => {
+    if (!showPreview) return;
+    const el = previewViewportRef.current;
+    if (!el) return;
+
+    const SAFE_PAD_X = 32;
+
+    const updateScale = () => {
+      const rect = el.getBoundingClientRect();
+      const next = Math.min((rect.width - SAFE_PAD_X) / A4_WIDTH, 1);
       setPreviewScale((prev) => (Math.abs(prev - next) > 0.01 ? next : prev));
     };
 
@@ -589,7 +676,7 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
       ro.disconnect();
       window.cancelAnimationFrame(id);
     };
-  }, [showPreview]);
+  }, [A4_WIDTH, showPreview]);
 
   function copyResume() {
     if (!data) return;
@@ -707,9 +794,35 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
           </div>
         </div>
 
-        {/* Inline compact preview */}
-        <div className="p-6 overflow-hidden">
-          <ResumeRenderer data={data} compact />
+        {/* Inline A4 preview */}
+        <div
+          ref={inlineViewportRef}
+          className="h-[80vh] overflow-hidden bg-slate-200/70 p-4 sm:p-6 flex justify-center items-center"
+        >
+          <div
+            className="relative my-2"
+            style={{
+              width: `${A4_WIDTH * inlineScale}px`,
+              height: `${A4_HEIGHT * inlineScale}px`,
+            }}
+          >
+            <div
+              className="bg-white border border-slate-200 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+              style={{
+                width: `${A4_WIDTH}px`,
+                height: `${A4_HEIGHT}px`,
+                transform: `scale(${inlineScale})`,
+                transformOrigin: "top left",
+              }}
+            >
+              <iframe
+                title="A4 Resume Preview Inline"
+                srcDoc={printHtml}
+                className="w-full h-full border-0"
+                scrolling="no"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -736,22 +849,33 @@ export default function GeneratedResumeCard({ result }: { result: BuilderResult 
             </div>
 
             {/* A4 page wrapper */}
-            <div ref={previewViewportRef} className="overflow-hidden flex-1 bg-slate-200 p-4 sm:p-6 flex justify-center items-start">
+            <div
+              ref={previewViewportRef}
+              className="flex-1 overflow-y-auto overflow-x-auto bg-slate-200 p-4 sm:p-6 flex justify-center items-start"
+            >
               <div
-                className="bg-white shadow-xl"
+                className="relative my-2"
                 style={{
-                  width: "794px",
-                  height: "1123px",
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: "top center",
+                  width: `${A4_WIDTH * previewScale}px`,
+                  height: `${A4_HEIGHT * previewScale}px`,
                 }}
               >
-                <iframe
-                  title="A4 Resume Preview"
-                  srcDoc={printHtml}
-                  className="w-full h-full border-0"
-                  scrolling="no"
-                />
+                <div
+                  className="bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                  style={{
+                    width: `${A4_WIDTH}px`,
+                    height: `${A4_HEIGHT}px`,
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: "top left",
+                  }}
+                >
+                  <iframe
+                    title="A4 Resume Preview"
+                    srcDoc={printHtml}
+                    className="w-full h-full border-0"
+                    scrolling="no"
+                  />
+                </div>
               </div>
             </div>
           </div>

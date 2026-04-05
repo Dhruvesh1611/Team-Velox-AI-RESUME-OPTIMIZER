@@ -7,6 +7,22 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import mammoth from "mammoth";
 
+// Ensure @napi-rs/canvas native binaries are traced and bundled by Vercel
+// and polyfill missing DOM classes for pdf-parse/pdfjs-dist in headless Node environments
+import * as canvas from "@napi-rs/canvas";
+if (typeof globalThis.DOMMatrix === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).DOMMatrix = canvas.DOMMatrix;
+}
+if (typeof globalThis.ImageData === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).ImageData = canvas.ImageData;
+}
+if (typeof globalThis.Path2D === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).Path2D = canvas.Path2D;
+}
+
 const execFileAsync = promisify(execFile);
 
 type ParsedDataUrl = {

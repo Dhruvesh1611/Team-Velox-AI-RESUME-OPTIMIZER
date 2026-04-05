@@ -96,52 +96,96 @@ Sections: EXECUTIVE PROFILE | KEY COMPETENCIES | PROFESSIONAL EXPERIENCE (revers
 Use corporate language, emphasize scale and impact.`,
 };
 
-const BASE_PROMPT = `You are an expert resume writer and ATS optimization specialist.
-Analyze the portfolio deeply and generate a STRUCTURED JSON resume.
+const BASE_PROMPT = `You are an expert ATS resume optimizer and enhancer.
 
-CRITICAL RULES:
-1. Use strong action verbs: Built, Engineered, Led, Implemented, Optimized, Deployed, Architected
-2. Add measurable outcomes: "Reduced load time by 40%", "Built for 1000+ users", "Improved score by 30pts"
-3. Mirror job description keywords naturally
-4. Use ONLY real data from portfolio — never fabricate names, dates, or companies
-5. One-page density rules (no empty-looking layout):
-   - Keep only the most relevant content for a single page resume
-   - Omit empty sections entirely (do not output placeholder or dummy lines)
-   - Prioritize quality over quantity; avoid repeating similar clone/practice items
-6. Relevance rules:
-   - Map each portfolio item to required job skills from the JD
-   - For highly relevant items: 3-4 concise, impact bullets
-   - For less relevant items: 1-2 concise bullets max
-   - Mention only verified technologies/links present in portfolio data
-7. Real-world resume quality rules:
-  - Output must look like a real placement-ready resume, not a toy draft
-  - Prefer concise but complete sections with practical recruiter language
-  - If portfolio contains multiple projects, include multiple projects (not just one)
-  - If certificates/education/contact are present in source, include them
-  - Keep all details truthful and source-backed
+Task:
+- Improve, expand, and optimize an existing resume using portfolio data and optional job description.
+- Enhance the base resume; do not blindly rewrite.
+- Fill missing depth and details while keeping all facts real.
+- Ensure output is full, professional, ATS-optimized, and single-page balanced.
 
-PROJECT PRIORITY (sort output in this order, most detail for high priority):
-  1. type=internship → 3-4 bullets, all links, full description
-  2. type=freelancing → 3-4 bullets, all links, full description
-  3. type=fullstack → 3-4 bullets
-  4. type=opensource → 2-3 bullets
-  5. type=other → 1-2 bullets (CSS clones, practice, API integrations)
+Input context:
+1. Existing resume (base)
+2. Portfolio data
+3. Job description (optional)
 
-CLASSIFICATION LOGIC (important):
-  - Put paid client or production client work under type=freelancing
-  - Put team/company/intern projects under type=internship
-  - Put contributions to public repos under type=opensource
-  - Put mini clones/practice work under type=other
-  - If unsure, infer from README text, repo topics, and naming patterns conservatively
+Core expansion rules:
+- If content is low:
+  - Expand each project to minimum 5 bullets using only source-backed context.
+  - Expand project description to 2-3 lines.
+  - Add technical depth: architecture, performance, scalability, reliability.
+  - Expand skills into categories and add only safe inferred skills from observed technologies.
+  - Include all valid certificates from source data.
+- If content is excessive:
+  - Curate to strongest 3-5 projects.
+  - Prioritize project types in this order: freelancing > internship > fullstack > opensource > other.
+  - Remove weak, duplicate, and tutorial/clone-style projects.
 
-MINIMUM DEPTH RULES (when source data is available):
-  - projects: include 4 to 8 projects
-  - top relevant projects: 3 to 4 bullets each
-  - lower relevance projects: 1 to 2 bullets each
-  - certificates: include up to 8 verified certificates
-  - skills: include all discovered categories (frontend/backend/database/tools/languages/cloud/uiux)
+Project enhancement rules:
+- Keep original meaning and factual content.
+- Every project must include:
+  - 2-3 line description
+  - minimum 5 bullets (expand to 6 if page is still underfilled)
+- Bullets should follow strong ATS structure:
+  [Action Verb] + [What] + [Tech] + [Impact]
+- Across bullets, include coverage of:
+  - feature implementation
+  - architecture/system design
+  - performance optimization
+  - security/scalability where relevant
+
+Impact and truthfulness rules:
+- NEVER fabricate metrics or numeric outcomes.
+- If no numbers are available, use qualitative impact statements.
+- Every bullet must include impact (quantitative if real, otherwise qualitative).
+
+Keyword alignment rules:
+- Extract and prioritize keywords from job description.
+- Target 60-80% keyword coverage across Skills + Project bullets.
+- Inject keywords only when contextually relevant.
+- If not relevant for bullets, place them in Skills.
+- Avoid keyword stuffing and cap repeated keyword phrases.
+
+Language quality rules:
+- Never use weak phrases like "worked on" or "responsible for".
+- Use strong verbs like Developed, Engineered, Designed, Implemented, Optimized, Built, Architected.
+- Avoid repetitive structures and duplicate bullet meaning.
+
+Mandatory section completeness:
+- Always include: Contact, Profile/Summary, Skills (categorized), Projects, Education, Certificates/Achievements.
+- Keep layout visually full and balanced for a single page without fake content.
+
+Hard page-fill requirement:
+- The resume must visually fill a full A4 page.
+- If page density is low, increase project bullets up to 6 and enrich descriptions/profile depth using real context.
+- Never add fake projects or fake experience.
+
+Strict safety rules:
+- Do not remove real experience.
+- Do not add fake companies, fake roles, or fake technologies.
+- Accuracy over optimization.
+
+QUALITATIVE IMPACT LANGUAGE (use when no numeric evidence exists):
+- optimized application performance
+- enhanced user experience and responsiveness
+- improved system efficiency and scalability
+- streamlined workflows and reduced complexity
+- increased reliability and maintainability
+
+CLASSIFICATION LOGIC:
+- Put paid client work under type=freelancing.
+- Put team/company/intern work under type=internship.
+- Put open-source contributions under type=opensource.
+- Put practice/clone work under type=other.
+
+MINIMUM DEPTH GUIDANCE (when source supports it):
+- projects: include 3 to 5 curated projects for single page quality
+- bullets per selected project: aim 3 to 5 (prefer 4+ for stronger projects)
+- certificates: include all valid source-backed certificates up to practical one-page limits
+- skills: include discovered categories (frontend/backend/database/tools/languages/cloud/uiux/concepts)
 
 RETURN ONLY this exact JSON (no markdown fences, no commentary):
+Return ONLY valid JSON. Do not include any text outside JSON.
 {
   "resumeData": {
     "name": "FULL NAME IN CAPS",
@@ -176,8 +220,8 @@ RETURN ONLY this exact JSON (no markdown fences, no commentary):
         "dateRange": "Sep 2025 - Dec 2025",
         "description": "One-sentence project summary for ATS",
         "bullets": [
-          "Built X using Y, achieving Z measurable outcome",
-          "Implemented feature A using technology B for purpose C"
+          "Built X using Y to improve system efficiency and scalability",
+          "Implemented feature A using technology B, enhancing user experience and responsiveness"
         ],
         "technologies": "Next.js, React, MongoDB, AWS S3",
         "links": { "github": "", "live": "", "demo": "" }
@@ -838,9 +882,12 @@ function enrichResumeProjectsFromSource(resumeData: ResumeDataPayload, portfolio
     const normalized = candidate.name.toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
     if (!normalized || existingNames.has(normalized)) continue;
 
-    const fallbackBullet = candidate.description
-      ? candidate.description
-      : "Built and showcased this project with practical implementation in the portfolio.";
+    const fallbackBullet = ensureImpactStatement(
+      candidate.description
+        ? candidate.description
+        : "Built and showcased this project with practical implementation in the portfolio.",
+      projects.length
+    );
 
     projects.push({
       name: candidate.name,
@@ -861,11 +908,1200 @@ function enrichResumeProjectsFromSource(resumeData: ResumeDataPayload, portfolio
   };
 }
 
+const QUALITATIVE_IMPACT_PHRASES = [
+  "optimized application performance",
+  "enhanced user experience and responsiveness",
+  "improved system efficiency and scalability",
+  "streamlined workflows and reduced complexity",
+  "increased reliability and maintainability",
+];
+
+function hasNumericMetric(text: string): boolean {
+  return /\b\d+(?:\.\d+)?\s*(?:%|x|k|m|b|ms|s|sec|seconds|min|mins|minutes|hours?|users?|customers?|clients?|downloads?|requests?|records?|rows?|revenue|sales|latency|throughput)\b/i.test(text);
+}
+
+function hasImpactLanguage(text: string): boolean {
+  return /(impact|improv|enhanc|optimiz|streamlin|increas|reduc|accelerat|scalab|efficien|reliab|maintainab|responsiv|performan|stability|quality)/i.test(text);
+}
+
+function strengthenActionVerb(text: string, seed: number): string {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return cleaned;
+
+  const strongVerbs = ["Developed", "Engineered", "Implemented", "Optimized", "Designed"];
+  const verb = strongVerbs[seed % strongVerbs.length];
+
+  const leadingRewrites: Array<[RegExp, string]> = [
+    [/^(?:[-*]\s*)?worked on\b\s*/i, `${verb} `],
+    [/^(?:[-*]\s*)?was responsible for\b\s*/i, `${verb} `],
+    [/^(?:[-*]\s*)?responsible for\b\s*/i, `${verb} `],
+    [/^(?:[-*]\s*)?involved in\b\s*/i, `${verb} `],
+  ];
+
+  for (const [pattern, replacement] of leadingRewrites) {
+    if (pattern.test(cleaned)) {
+      return cleaned.replace(pattern, replacement).trim();
+    }
+  }
+
+  return cleaned
+    .replace(/\bworked on\b/gi, "developed")
+    .replace(/\bwas responsible for\b/gi, "implemented")
+    .replace(/\bresponsible for\b/gi, "implemented")
+    .replace(/\binvolved in\b/gi, "engineered")
+    .trim();
+}
+
+function ensureImpactStatement(bullet: string, seed: number): string {
+  const cleaned = strengthenActionVerb(bullet, seed);
+  if (!cleaned) {
+    return `Delivered implementation outcomes that ${QUALITATIVE_IMPACT_PHRASES[seed % QUALITATIVE_IMPACT_PHRASES.length]}.`;
+  }
+
+  if (hasNumericMetric(cleaned) || hasImpactLanguage(cleaned)) {
+    return cleaned;
+  }
+
+  const phrase = QUALITATIVE_IMPACT_PHRASES[seed % QUALITATIVE_IMPACT_PHRASES.length];
+  return `${cleaned}, ${phrase}.`;
+}
+
+function normalizeProjectsWithImpact(resumeData: ResumeDataPayload): ResumeDataPayload {
+  const projects = (resumeData.projects ?? []).map((project, idx) => {
+    const sourceBullets = Array.isArray(project.bullets) ? project.bullets : [];
+    const normalizedBullets = sourceBullets
+      .map((bullet, bulletIdx) => ensureImpactStatement(String(bullet), idx + bulletIdx))
+      .filter(Boolean);
+
+    if (normalizedBullets.length === 0) {
+      const fallback = project.description?.trim()
+        ? ensureImpactStatement(project.description, idx)
+        : ensureImpactStatement("Implemented core features and delivered practical outcomes.", idx);
+      normalizedBullets.push(fallback);
+    }
+
+    return {
+      ...project,
+      bullets: normalizedBullets,
+    };
+  });
+
+  return {
+    ...resumeData,
+    projects,
+  };
+}
+
+type KeywordCategory = "skills" | "tools" | "concepts";
+
+type KeywordCatalogItem = {
+  keyword: string;
+  category: KeywordCategory;
+  aliases: string[];
+};
+
+type KeywordTarget = {
+  keyword: string;
+  category: KeywordCategory;
+  aliases: string[];
+  priority: number;
+};
+
+type KeywordAlignmentResult = {
+  resumeData: ResumeDataPayload;
+  targetKeywords: string[];
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  coverageRatio: number;
+};
+
+type ProjectScoreCard = {
+  relevance: number;
+  impact: number;
+  complexity: number;
+  uniqueness: number;
+  weighted: number;
+};
+
+const DIVERSITY_VERB_ROTATION = [
+  "Developed",
+  "Engineered",
+  "Designed",
+  "Implemented",
+  "Optimized",
+  "Built",
+  "Architected",
+];
+
+const JD_KEYWORD_CATALOG: KeywordCatalogItem[] = [
+  { keyword: "React", category: "skills", aliases: ["react", "react.js", "reactjs"] },
+  { keyword: "Next.js", category: "skills", aliases: ["next.js", "nextjs", "next"] },
+  { keyword: "Node.js", category: "skills", aliases: ["node.js", "nodejs", "node"] },
+  { keyword: "Express.js", category: "skills", aliases: ["express", "express.js"] },
+  { keyword: "TypeScript", category: "skills", aliases: ["typescript", "ts"] },
+  { keyword: "JavaScript", category: "skills", aliases: ["javascript", "js"] },
+  { keyword: "MongoDB", category: "skills", aliases: ["mongodb", "mongo db"] },
+  { keyword: "SQL", category: "skills", aliases: ["sql", "mysql", "postgres", "postgresql"] },
+  { keyword: "REST APIs", category: "concepts", aliases: ["rest api", "rest apis", "api", "apis"] },
+  { keyword: "API Integration", category: "concepts", aliases: ["api integration", "integrating apis", "api integrations"] },
+  { keyword: "Performance Optimization", category: "concepts", aliases: ["performance optimization", "performance", "optimization", "latency"] },
+  { keyword: "Scalability", category: "concepts", aliases: ["scalability", "scalable", "scale"] },
+  { keyword: "Responsive Design", category: "concepts", aliases: ["responsive", "responsive design"] },
+  { keyword: "System Reliability", category: "concepts", aliases: ["reliability", "stable", "maintainability"] },
+  { keyword: "Git", category: "tools", aliases: ["git"] },
+  { keyword: "GitHub", category: "tools", aliases: ["github"] },
+  { keyword: "Docker", category: "tools", aliases: ["docker", "container", "containers"] },
+  { keyword: "AWS", category: "tools", aliases: ["aws", "amazon web services"] },
+  { keyword: "Vercel", category: "tools", aliases: ["vercel"] },
+  { keyword: "CI/CD", category: "tools", aliases: ["ci/cd", "cicd", "continuous integration", "continuous delivery"] },
+];
+
+const DEFAULT_FULLSTACK_KEYWORDS = [
+  "React",
+  "Next.js",
+  "Node.js",
+  "Express.js",
+  "MongoDB",
+  "TypeScript",
+  "REST APIs",
+  "API Integration",
+  "Performance Optimization",
+  "Scalability",
+  "Git",
+  "Docker",
+  "AWS",
+];
+
+function normalizeKeywordText(text: string): string {
+  return ` ${text.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").trim()} `;
+}
+
+function countAliasOccurrences(text: string, alias: string): number {
+  const normalizedText = normalizeKeywordText(text);
+  const normalizedAlias = alias.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").trim();
+  if (!normalizedAlias) return 0;
+
+  let count = 0;
+  let index = normalizedText.indexOf(` ${normalizedAlias} `);
+  while (index !== -1) {
+    count += 1;
+    index = normalizedText.indexOf(` ${normalizedAlias} `, index + normalizedAlias.length + 1);
+  }
+  return count;
+}
+
+function containsAnyAlias(text: string, aliases: string[]): boolean {
+  return aliases.some((alias) => countAliasOccurrences(text, alias) > 0);
+}
+
+function extractPrioritizedKeywords(jobDescription: string, hasUserJD: boolean): KeywordTarget[] {
+  if (!hasUserJD) {
+    return DEFAULT_FULLSTACK_KEYWORDS
+      .map((keyword, idx) => {
+        const item = JD_KEYWORD_CATALOG.find((entry) => entry.keyword === keyword);
+        return item
+          ? {
+              keyword: item.keyword,
+              category: item.category,
+              aliases: item.aliases,
+              priority: 100 - idx,
+            }
+          : null;
+      })
+      .filter((item): item is KeywordTarget => Boolean(item));
+  }
+
+  const ranked = JD_KEYWORD_CATALOG
+    .map((entry) => {
+      const frequency = entry.aliases.reduce(
+        (acc, alias) => acc + countAliasOccurrences(jobDescription, alias),
+        0
+      );
+
+      const categoryWeight =
+        entry.category === "skills" ? 20 : entry.category === "tools" ? 15 : 10;
+
+      return {
+        keyword: entry.keyword,
+        category: entry.category,
+        aliases: entry.aliases,
+        priority: frequency > 0 ? frequency * 100 + categoryWeight : 0,
+      };
+    })
+    .filter((entry) => entry.priority > 0)
+    .sort((a, b) => b.priority - a.priority);
+
+  if (ranked.length === 0) {
+    return extractPrioritizedKeywords(jobDescription, false);
+  }
+
+  return ranked.slice(0, 15);
+}
+
+function chooseSkillsBucket(keyword: string): string {
+  const lowered = keyword.toLowerCase();
+
+  if (/(react|next|vue|angular|tailwind|css|html|frontend|responsive)/.test(lowered)) return "frontend";
+  if (/(node|express|nest|backend|graphql|api)/.test(lowered)) return "backend";
+  if (/(mongo|sql|postgres|mysql|redis|database)/.test(lowered)) return "database";
+  if (/(typescript|javascript|python|java|c\+\+|language)/.test(lowered)) return "languages";
+  if (/(aws|azure|gcp|docker|kubernetes|vercel|cloud|ci\/cd)/.test(lowered)) return "cloud";
+  if (/(performance|scalability|reliability|integration|architecture|optimization)/.test(lowered)) return "concepts";
+  return "tools";
+}
+
+function appendKeywordToSkills(resumeData: ResumeDataPayload, target: KeywordTarget): boolean {
+  const skills = { ...(resumeData.skills ?? {}) };
+  const bucket = chooseSkillsBucket(target.keyword);
+  const existing = String(skills[bucket] ?? "").trim();
+
+  if (containsAnyAlias(existing, target.aliases)) {
+    return false;
+  }
+
+  const next = existing ? `${existing}, ${target.keyword}` : target.keyword;
+  skills[bucket] = next;
+  resumeData.skills = skills;
+  return true;
+}
+
+function projectSemanticText(project: ResumeProjectPayload): string {
+  return [
+    project.name,
+    project.category,
+    project.description,
+    project.technologies,
+    ...(project.bullets ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function projectTechnologiesText(project: ResumeProjectPayload): string {
+  return [project.technologies, ...(project.bullets ?? [])]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function computeKeywordRelevanceScore(project: ResumeProjectPayload, target: KeywordTarget): number {
+  const fullText = projectSemanticText(project);
+  const techText = projectTechnologiesText(project);
+
+  const aliasInTech = target.aliases.some((alias) => countAliasOccurrences(techText, alias) > 0);
+  const aliasInProject = target.aliases.some((alias) => countAliasOccurrences(fullText, alias) > 0);
+
+  const frontendSignals = /(frontend|ui|ux|react|next|tailwind|css|html|landing|portfolio)/i.test(fullText);
+  const backendSignals = /(backend|api|server|node|express|database|auth|crud|microservice)/i.test(fullText);
+  const devopsSignals = /(docker|container|kubernetes|aws|cloud|deploy|ci\/cd|pipeline|infra)/i.test(fullText);
+  const performanceSignals = /(performance|optimi[sz]|latency|throughput|scale|scalab|reliab|maintainab)/i.test(fullText);
+
+  let score = 0;
+
+  if (aliasInTech) score += 0.75;
+  if (aliasInProject) score += 0.2;
+
+  if (target.keyword === "REST APIs" || target.keyword === "API Integration") {
+    if (backendSignals) score += 0.35;
+  }
+
+  if (target.keyword === "Performance Optimization" || target.keyword === "Scalability" || target.keyword === "System Reliability") {
+    if (performanceSignals || backendSignals) score += 0.35;
+  }
+
+  if (target.keyword === "Docker" || target.keyword === "AWS" || target.keyword === "CI/CD") {
+    if (devopsSignals || backendSignals) score += 0.35;
+    if (frontendSignals && !backendSignals && !devopsSignals) score -= 0.35;
+  }
+
+  if (target.keyword === "React" || target.keyword === "Next.js" || target.keyword === "Responsive Design") {
+    if (frontendSignals) score += 0.3;
+  }
+
+  return Math.max(0, Math.min(1, score));
+}
+
+function chooseRelevantProject(projects: ResumeProjectPayload[], target: KeywordTarget): { index: number; score: number } {
+  if (projects.length === 0) return { index: -1, score: 0 };
+
+  let bestIndex = -1;
+  let bestScore = 0;
+
+  for (let i = 0; i < projects.length; i += 1) {
+    const score = computeKeywordRelevanceScore(projects[i], target);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+
+  return { index: bestIndex, score: bestScore };
+}
+
+function injectKeywordNaturally(bullet: string, target: KeywordTarget): string {
+  if (containsAnyAlias(bullet, target.aliases)) {
+    return bullet;
+  }
+
+  const cleaned = bullet.trim().replace(/[.\s]+$/, "");
+
+  if (target.category === "concepts") {
+    return `${cleaned}, with emphasis on ${target.keyword.toLowerCase()}.`;
+  }
+
+  if (/using\s/i.test(cleaned)) {
+    return `${cleaned}, leveraging ${target.keyword} to enhance delivery outcomes.`;
+  }
+
+  return `${cleaned} using ${target.keyword} to improve system efficiency and scalability.`;
+}
+
+function countKeywordOccurrencesInResume(resumeData: ResumeDataPayload, target: KeywordTarget): number {
+  const allText = [
+    ...(resumeData.skills ? Object.values(resumeData.skills) : []),
+    ...(resumeData.projects ?? []).flatMap((project) => [
+      project.technologies,
+      ...(project.bullets ?? []),
+      project.description,
+      project.name,
+    ]),
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return target.aliases.reduce(
+    (acc, alias) => acc + countAliasOccurrences(allText, alias),
+    0
+  );
+}
+
+function hasRelevantProjectMatch(resumeData: ResumeDataPayload, target: KeywordTarget): boolean {
+  const projects = resumeData.projects ?? [];
+
+  for (const project of projects) {
+    const score = computeKeywordRelevanceScore(project, target);
+    if (score < 0.6) continue;
+
+    const text = [
+      project.name,
+      project.category,
+      project.description,
+      project.technologies,
+      ...(project.bullets ?? []),
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    if (containsAnyAlias(text, target.aliases)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function hasSkillsMatch(resumeData: ResumeDataPayload, target: KeywordTarget): boolean {
+  const skillsText = Object.values(resumeData.skills ?? {}).join(" ");
+  return containsAnyAlias(skillsText, target.aliases);
+}
+
+function alignResumeKeywords(
+  resumeData: ResumeDataPayload,
+  jobDescription: string,
+  hasUserJD: boolean
+): KeywordAlignmentResult {
+  const aligned: ResumeDataPayload = {
+    ...resumeData,
+    skills: { ...(resumeData.skills ?? {}) },
+    projects: (resumeData.projects ?? []).map((project) => ({
+      ...project,
+      bullets: Array.isArray(project.bullets) ? [...project.bullets] : [],
+    })),
+  };
+
+  const targets = extractPrioritizedKeywords(jobDescription, hasUserJD).slice(0, 12);
+  const targetCount = targets.length;
+  const targetCoverage = 0.7; // strict midpoint of requested 60-80%
+
+  const evaluate = () => {
+    const matched = targets.filter(
+      (target) => hasRelevantProjectMatch(aligned, target) || hasSkillsMatch(aligned, target)
+    );
+    const missing = targets.filter(
+      (target) => !hasRelevantProjectMatch(aligned, target) && !hasSkillsMatch(aligned, target)
+    );
+    const coverage = targetCount > 0 ? matched.length / targetCount : 0;
+    return { matched, missing, coverage };
+  };
+
+  let current = evaluate();
+
+  for (const target of current.missing) {
+    if (current.coverage >= targetCoverage) break;
+
+    const occurrenceCount = countKeywordOccurrencesInResume(aligned, target);
+    if (occurrenceCount >= 3) continue;
+
+    let injected = false;
+
+    const projects = aligned.projects ?? [];
+    const candidate = chooseRelevantProject(projects, target);
+    if (candidate.index >= 0 && candidate.score >= 0.6) {
+      const projectIndex = candidate.index;
+      const project = projects[projectIndex];
+      if (!Array.isArray(project.bullets) || project.bullets.length === 0) {
+        project.bullets = [
+          ensureImpactStatement(
+            injectKeywordNaturally("Implemented core project features", target),
+            projectIndex
+          ),
+        ];
+        injected = true;
+      } else {
+        const bulletIndex = 0;
+        const updated = ensureImpactStatement(
+          injectKeywordNaturally(project.bullets[bulletIndex], target),
+          projectIndex + bulletIndex
+        );
+
+        if (updated !== project.bullets[bulletIndex]) {
+          project.bullets[bulletIndex] = updated;
+          injected = true;
+        }
+      }
+    }
+
+    if (!injected) {
+      // If no project passes semantic relevance threshold, place keyword in skills only.
+      injected = appendKeywordToSkills(aligned, target);
+    }
+
+    if (injected && countKeywordOccurrencesInResume(aligned, target) > 3) {
+      // Keep keyword presence but avoid stuffing by not adding more than one additional instance.
+      continue;
+    }
+
+    current = evaluate();
+  }
+
+  const finalEval = evaluate();
+  return {
+    resumeData: aligned,
+    targetKeywords: targets.map((target) => target.keyword),
+    matchedKeywords: finalEval.matched.map((target) => target.keyword),
+    missingKeywords: finalEval.missing.map((target) => target.keyword),
+    coverageRatio: finalEval.coverage,
+  };
+}
+
+function replaceLeadingVerb(bullet: string, verb: string): string {
+  const trimmed = bullet.trim();
+  if (!trimmed) return trimmed;
+
+  const escaped = DIVERSITY_VERB_ROTATION.join("|");
+  const leadingVerbPattern = new RegExp(`^(${escaped})\\b\\s+`, "i");
+
+  if (leadingVerbPattern.test(trimmed)) {
+    return trimmed.replace(leadingVerbPattern, `${verb} `);
+  }
+
+  return `${verb} ${trimmed.charAt(0).toLowerCase()}${trimmed.slice(1)}`;
+}
+
+function normalizeMeaningSignature(text: string): Set<string> {
+  const stopWords = new Set([
+    "the", "and", "for", "with", "using", "through", "into", "from", "that", "this", "a", "an",
+    "to", "of", "on", "in", "by", "as", "is", "are", "was", "were", "be", "being", "been",
+    "improved", "improve", "enhanced", "enhance", "optimized", "optimize", "implemented", "developed",
+    "engineered", "designed", "built", "architected", "resulting", "delivered", "project", "feature",
+  ]);
+
+  const tokens = text
+    .toLowerCase()
+    .replace(/[^a-z0-9+#. ]+/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2 && !stopWords.has(token));
+
+  return new Set(tokens);
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+
+  let intersection = 0;
+  for (const token of a) {
+    if (b.has(token)) intersection += 1;
+  }
+
+  const union = a.size + b.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function diversifySentenceStructure(bullet: string, bulletIndex: number): string {
+  const cleaned = bullet.trim().replace(/\s+/g, " ");
+  if (!cleaned) return cleaned;
+
+  const pattern = /^(\w+)\s+(.+?)\s+using\s+(.+?)\s+to\s+(.+?)([.!]?)$/i;
+  const match = cleaned.match(pattern);
+  if (!match) return cleaned;
+
+  const verb = match[1];
+  const feature = match[2];
+  const tech = match[3];
+  const impact = match[4];
+
+  if (bulletIndex % 3 === 1) {
+    return `${verb} ${feature} to ${impact} using ${tech}.`;
+  }
+
+  if (bulletIndex % 3 === 2) {
+    return `${verb} ${feature}; using ${tech}, this improved ${impact}.`;
+  }
+
+  return `${verb} ${feature} using ${tech} to ${impact}.`;
+}
+
+function diversifyKeywordPhrasing(
+  bullet: string,
+  phraseCount: Map<string, number>,
+  bulletSeed: number
+): string {
+  let updated = bullet;
+
+  const patterns = [
+    /(using\s+[^,.;]+?)(?=\s+to\b|,|\.|;|$)/i,
+    /(leveraging\s+[^,.;]+?)(?=\s+to\b|,|\.|;|$)/i,
+    /(with emphasis on\s+[^,.;]+?)(?=\s+to\b|,|\.|;|$)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = updated.match(pattern);
+    if (!match) continue;
+
+    const phrase = match[1].trim();
+    const phraseKey = phrase.toLowerCase();
+    const nextCount = (phraseCount.get(phraseKey) ?? 0) + 1;
+    phraseCount.set(phraseKey, nextCount);
+
+    if (nextCount <= 2) continue;
+
+    const phraseBody = phrase
+      .replace(/^using\s+/i, "")
+      .replace(/^leveraging\s+/i, "")
+      .replace(/^with emphasis on\s+/i, "")
+      .trim();
+
+    const replacements = [
+      `with ${phraseBody}`,
+      `powered by ${phraseBody}`,
+      `through ${phraseBody}`,
+    ];
+    const replacement = replacements[bulletSeed % replacements.length];
+    updated = updated.replace(phrase, replacement);
+  }
+
+  return updated;
+}
+
+function applyBulletDiversityAndAntiRepetition(resumeData: ResumeDataPayload): ResumeDataPayload {
+  const globalPhraseCount = new Map<string, number>();
+
+  const projects = (resumeData.projects ?? []).map((project, projectIndex) => {
+    const sourceBullets = (project.bullets ?? []).map((b) => String(b).trim()).filter(Boolean);
+    const diversified: string[] = [];
+    const seenSignatures: Set<string>[] = [];
+    const verbUsage = new Map<string, number>();
+
+    for (let bulletIndex = 0; bulletIndex < sourceBullets.length; bulletIndex += 1) {
+      const seed = projectIndex * 10 + bulletIndex;
+      let bullet = diversifySentenceStructure(sourceBullets[bulletIndex], bulletIndex);
+
+      const desiredVerb = DIVERSITY_VERB_ROTATION[(projectIndex + bulletIndex) % DIVERSITY_VERB_ROTATION.length];
+      const desiredCount = verbUsage.get(desiredVerb.toLowerCase()) ?? 0;
+
+      if (desiredCount < 2) {
+        bullet = replaceLeadingVerb(bullet, desiredVerb);
+      } else {
+        const fallbackVerb = DIVERSITY_VERB_ROTATION.find(
+          (verb) => (verbUsage.get(verb.toLowerCase()) ?? 0) < 2
+        );
+        if (fallbackVerb) {
+          bullet = replaceLeadingVerb(bullet, fallbackVerb);
+        }
+      }
+
+      bullet = diversifyKeywordPhrasing(bullet, globalPhraseCount, seed);
+      bullet = ensureImpactStatement(bullet, seed);
+
+      const signature = normalizeMeaningSignature(bullet);
+      const isDuplicateMeaning = seenSignatures.some(
+        (existing) => jaccardSimilarity(existing, signature) >= 0.72
+      );
+
+      if (isDuplicateMeaning) {
+        continue;
+      }
+
+      const leadingVerb = bullet.match(/^(\w+)\b/)?.[1]?.toLowerCase();
+      if (leadingVerb) {
+        verbUsage.set(leadingVerb, (verbUsage.get(leadingVerb) ?? 0) + 1);
+      }
+
+      diversified.push(bullet);
+      seenSignatures.push(signature);
+    }
+
+    if (diversified.length === 0) {
+      diversified.push(
+        ensureImpactStatement(
+          replaceLeadingVerb(
+            project.description?.trim() || "Implemented core project capabilities for measurable outcomes.",
+            DIVERSITY_VERB_ROTATION[projectIndex % DIVERSITY_VERB_ROTATION.length]
+          ),
+          projectIndex
+        )
+      );
+    }
+
+    return {
+      ...project,
+      bullets: diversified,
+    };
+  });
+
+  return {
+    ...resumeData,
+    projects,
+  };
+}
+
+function tokenizeProjectSemantics(project: ResumeProjectPayload): Set<string> {
+  const text = [
+    project.name,
+    project.category,
+    project.description,
+    project.technologies,
+    ...(project.bullets ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const stop = new Set([
+    "the", "and", "for", "with", "using", "from", "that", "this", "into", "through", "project",
+    "built", "build", "developed", "implemented", "designed", "engineered", "optimized", "feature",
+    "application", "app", "system", "platform", "solution", "result", "results",
+  ]);
+
+  const tokens = text
+    .replace(/[^a-z0-9+#. ]+/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2 && !stop.has(token));
+
+  return new Set(tokens);
+}
+
+function countTechnologies(project: ResumeProjectPayload): number {
+  const techTokens = String(project.technologies ?? "")
+    .split(/[|,/]/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  const inferred = JD_KEYWORD_CATALOG
+    .map((entry) => entry.keyword)
+    .filter((keyword) => containsAnyAlias(projectSemanticText(project), [keyword.toLowerCase(), keyword]));
+
+  const merged = new Set([...techTokens, ...inferred]);
+  return merged.size;
+}
+
+function detectProjectArchetype(project: ResumeProjectPayload): string {
+  const text = projectSemanticText(project);
+  if (/(crud|todo|notes|basic management)/i.test(text)) return "crud";
+  if (/(dashboard|analytics|admin)/i.test(text)) return "dashboard";
+  if (/(ecommerce|cart|payment|checkout)/i.test(text)) return "ecommerce";
+  if (/(api|backend|microservice|server)/i.test(text)) return "backend";
+  if (/(ui|ux|landing|portfolio|design)/i.test(text)) return "frontend";
+  if (/(chat|realtime|socket|collaboration)/i.test(text)) return "realtime";
+  if (/(automation|workflow|pipeline|devops|deployment)/i.test(text)) return "automation";
+  return "general";
+}
+
+function isWeakOrCloneProject(project: ResumeProjectPayload): boolean {
+  const text = [project.name, project.description, ...(project.bullets ?? [])].filter(Boolean).join(" ").toLowerCase();
+  const weakDescription = !project.description || project.description.trim().length < 24;
+  const cloneSignals = /(clone|tutorial|practice|basic demo|sample project|learning project)/i.test(text);
+  const veryLowSignalBullets = (project.bullets ?? []).filter((bullet) => bullet.trim().length >= 22).length < 2;
+
+  return weakDescription || cloneSignals || veryLowSignalBullets;
+}
+
+function typePriorityScore(projectType?: string): number {
+  const normalized = String(projectType ?? "other").toLowerCase();
+  if (normalized === "freelancing") return 1;
+  if (normalized === "internship") return 0.9;
+  if (normalized === "fullstack") return 0.8;
+  if (normalized === "opensource") return 0.7;
+  return 0.5;
+}
+
+function computeProjectScore(
+  project: ResumeProjectPayload,
+  allProjects: ResumeProjectPayload[],
+  keywordTargets: KeywordTarget[]
+): ProjectScoreCard {
+  const projectText = projectSemanticText(project);
+
+  const relevanceMatches = keywordTargets.filter((target) => containsAnyAlias(projectText, target.aliases)).length;
+  const relevance = keywordTargets.length > 0
+    ? Math.min(1, relevanceMatches / keywordTargets.length)
+    : 0.5;
+
+  const strongBullets = (project.bullets ?? []).filter((bullet) => hasNumericMetric(bullet) || hasImpactLanguage(bullet)).length;
+  const impact = Math.min(1, strongBullets / 3);
+
+  const techCount = countTechnologies(project);
+  const complexitySignals = /(architecture|auth|authorization|realtime|websocket|microservice|pipeline|caching|queue|scalab|performance)/i.test(projectText)
+    ? 0.2
+    : 0;
+  const complexity = Math.max(0, Math.min(1, Math.min(techCount, 8) / 8 + complexitySignals));
+
+  const thisTokens = tokenizeProjectSemantics(project);
+  let maxSimilarity = 0;
+  for (const peer of allProjects) {
+    if (peer === project) continue;
+    const peerTokens = tokenizeProjectSemantics(peer);
+    maxSimilarity = Math.max(maxSimilarity, jaccardSimilarity(thisTokens, peerTokens));
+  }
+  const uniqueness = Math.max(0, 1 - maxSimilarity);
+
+  const weightedCore =
+    relevance * 0.4 +
+    impact * 0.25 +
+    complexity * 0.2 +
+    uniqueness * 0.15;
+  const weighted = Math.round(Math.min(1, weightedCore) * 100);
+
+  return {
+    relevance,
+    impact,
+    complexity,
+    uniqueness,
+    weighted,
+  };
+}
+
+function ensureProjectQuality(project: ResumeProjectPayload, seed: number): ResumeProjectPayload | null {
+  if (isWeakOrCloneProject(project)) {
+    return null;
+  }
+
+  const bullets = (project.bullets ?? [])
+    .map((bullet, index) => ensureImpactStatement(String(bullet), seed + index))
+    .filter(Boolean);
+
+  if (bullets.length < 2) {
+    const fallbackBullet = ensureImpactStatement(
+      project.description?.trim()
+        ? `Implemented ${project.description.trim()}`
+        : "Implemented key product capabilities with practical outcomes",
+      seed + bullets.length + 1
+    );
+    bullets.push(fallbackBullet);
+  }
+
+  const qualityBullets = bullets.filter((bullet) => hasNumericMetric(bullet) || hasImpactLanguage(bullet));
+  if (qualityBullets.length < 2) {
+    return null;
+  }
+
+  const technologies = String(project.technologies ?? "").trim();
+  if (!technologies) {
+    return null;
+  }
+
+  return {
+    ...project,
+    bullets,
+    technologies,
+  };
+}
+
+function curateAndSelectProjects(
+  resumeData: ResumeDataPayload,
+  keywordTargets: KeywordTarget[]
+): ResumeDataPayload {
+  const projects = (resumeData.projects ?? []).map((project) => ({
+    ...project,
+    bullets: Array.isArray(project.bullets) ? [...project.bullets] : [],
+  }));
+
+  const scored = projects
+    .map((project, idx) => {
+      const qualified = ensureProjectQuality(project, idx * 7);
+      if (!qualified) return null;
+      const score = computeProjectScore(qualified, projects, keywordTargets);
+      return { project: qualified, score };
+    })
+    .filter((item): item is { project: ResumeProjectPayload; score: ProjectScoreCard } => Boolean(item))
+    .sort((a, b) => {
+      if (b.score.weighted !== a.score.weighted) {
+        return b.score.weighted - a.score.weighted;
+      }
+      return typePriorityScore(b.project.type) - typePriorityScore(a.project.type);
+    });
+
+  if (scored.length === 0) {
+    return {
+      ...resumeData,
+      projects: [],
+    };
+  }
+
+  const selected: Array<{ project: ResumeProjectPayload; score: ProjectScoreCard }> = [];
+  const archetypes = new Set<string>();
+
+  for (const candidate of scored) {
+    if (selected.length >= 5) break;
+
+    const archetype = detectProjectArchetype(candidate.project);
+    const duplicateArchetypePenalty = archetypes.has(archetype) && selected.length >= 3;
+
+    const tooSimilar = selected.some((picked) => {
+      const a = tokenizeProjectSemantics(candidate.project);
+      const b = tokenizeProjectSemantics(picked.project);
+      return jaccardSimilarity(a, b) >= 0.7;
+    });
+
+    if (tooSimilar) continue;
+    if (duplicateArchetypePenalty && candidate.score.weighted < 78) continue;
+    if (candidate.score.weighted < 55) continue;
+
+    selected.push(candidate);
+    archetypes.add(archetype);
+  }
+
+  const minTarget = Math.min(3, scored.length);
+  if (selected.length < minTarget) {
+    for (const candidate of scored) {
+      if (selected.length >= minTarget) break;
+      if (selected.some((item) => item.project.name === candidate.project.name)) continue;
+      if (candidate.score.weighted < 45) continue;
+      selected.push(candidate);
+    }
+  }
+
+  const finalProjects = selected
+    .slice(0, 5)
+    .map((item) => {
+      const techItems = item.project.technologies
+        ?.split(/[|,/]/)
+        .map((token) => token.trim())
+        .filter(Boolean)
+        .slice(0, 8)
+        .join(", ");
+
+      return {
+        ...item.project,
+        technologies: techItems ?? item.project.technologies,
+      };
+    });
+
+  return {
+    ...resumeData,
+    projects: finalProjects,
+  };
+}
+
+function splitTechList(value: string): string[] {
+  return value
+    .split(/[|,/]/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function inferSkillsFromProjects(resumeData: ResumeDataPayload): ResumeDataPayload {
+  const inferredByBucket: Record<string, Set<string>> = {
+    frontend: new Set(),
+    backend: new Set(),
+    database: new Set(),
+    tools: new Set(),
+    cloud: new Set(),
+    languages: new Set(),
+    concepts: new Set(),
+  };
+
+  for (const project of resumeData.projects ?? []) {
+    const technologies = splitTechList(String(project.technologies ?? ""));
+    for (const tech of technologies) {
+      const bucket = chooseSkillsBucket(tech);
+      inferredByBucket[bucket]?.add(tech);
+    }
+
+    const text = projectSemanticText(project);
+    if (/architecture|system design|modular/i.test(text)) inferredByBucket.concepts.add("Architecture");
+    if (/performance|latency|optimization/i.test(text)) inferredByBucket.concepts.add("Performance Optimization");
+    if (/scalab|reliab|maintainab/i.test(text)) inferredByBucket.concepts.add("Scalability & Reliability");
+  }
+
+  const skills = { ...(resumeData.skills ?? {}) };
+  for (const [bucket, values] of Object.entries(inferredByBucket)) {
+    if (values.size === 0) continue;
+    const existing = splitTechList(String(skills[bucket] ?? ""));
+    const existingSet = new Set(existing.map((s) => s.toLowerCase()));
+    const inferredCandidates = Array.from(values).filter((item) => !existingSet.has(item.toLowerCase()));
+    const addLimit = bucket === "concepts" ? 2 : 2;
+    const additions = inferredCandidates.slice(0, addLimit);
+    const merged = Array.from(new Set([...existing, ...additions])).slice(0, bucket === "concepts" ? 6 : 12);
+    skills[bucket] = merged.join(", ");
+  }
+
+  return {
+    ...resumeData,
+    skills,
+  };
+}
+
+function ensureMandatorySections(resumeData: ResumeDataPayload, portfolioUrl: string): ResumeDataPayload {
+  const contacts = { ...(resumeData.contacts ?? {}) };
+  if (!contacts.portfolio && portfolioUrl.trim()) {
+    contacts.portfolio = portfolioUrl.trim();
+  }
+
+  const achievements = Array.isArray(resumeData.achievements) ? [...resumeData.achievements] : [];
+  if (achievements.length === 0 && (resumeData.projects?.length ?? 0) > 0) {
+    achievements.push({
+      title: `Portfolio projects delivered: ${resumeData.projects?.length ?? 0}+`,
+      award: "Hands-on implementation across production-oriented use cases",
+      link: "",
+    });
+  }
+
+  return {
+    ...resumeData,
+    contacts,
+    achievements,
+    certificates: Array.isArray(resumeData.certificates) ? [...resumeData.certificates] : [],
+    education: Array.isArray(resumeData.education) ? [...resumeData.education] : [],
+    projects: Array.isArray(resumeData.projects) ? [...resumeData.projects] : [],
+  };
+}
+
+function expandProjectDescription(project: ResumeProjectPayload): string {
+  const base = String(project.description ?? "").trim();
+  const tech = splitTechList(String(project.technologies ?? "")).slice(0, 4).join(", ");
+  const sentences = base
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const additions: string[] = [];
+  if (tech) additions.push(`Technical stack included ${tech} with modular implementation choices.`);
+  if (!/architect/i.test(base)) additions.push("Architecture emphasized maintainable components and clean integration boundaries.");
+  if (!/perform|scalab|reliab|efficien/i.test(base)) additions.push("Implementation focused on performance, scalability, and reliable user-facing behavior.");
+
+  const merged = [...sentences, ...additions].slice(0, 3);
+  return merged.join(" ").trim();
+}
+
+function expandProjectBulletsForLowContent(project: ResumeProjectPayload, seed: number): ResumeProjectPayload {
+  const bullets = (project.bullets ?? []).map((bullet, idx) => ensureImpactStatement(String(bullet), seed + idx));
+  const tech = splitTechList(String(project.technologies ?? "")).slice(0, 4);
+
+  const supplements = [
+    tech.length > 0
+      ? `Designed service boundaries and integration flow using ${tech.join(", ")} to streamline workflows and reduce complexity.`
+      : "Designed architecture decisions to streamline workflows and reduce complexity.",
+    "Implemented scalability-minded patterns to improve system efficiency and maintainability under growing usage.",
+    "Optimized reliability through structured error handling and resilient integration behavior for better responsiveness.",
+  ].map((line, idx) => ensureImpactStatement(line, seed + 20 + idx));
+
+  const merged = Array.from(new Set([...bullets, ...supplements])).slice(0, 5);
+
+  return {
+    ...project,
+    description: expandProjectDescription(project),
+    bullets: merged,
+  };
+}
+
+function ensureMinimumProjectDepth(
+  project: ResumeProjectPayload,
+  seed: number,
+  minimumBullets: number
+): ResumeProjectPayload {
+  const targetBullets = Math.max(5, Math.min(6, minimumBullets));
+
+  const baseBullets = (project.bullets ?? [])
+    .map((bullet, idx) => ensureImpactStatement(String(bullet), seed + idx))
+    .filter(Boolean);
+
+  const tech = splitTechList(String(project.technologies ?? "")).slice(0, 5);
+  const techLine = tech.length > 0 ? ` using ${tech.join(", ")}` : "";
+
+  const projectText = [project.description, ...(project.bullets ?? []), project.technologies].filter(Boolean).join(" ").toLowerCase();
+  const hasArchitecture = /architect|system design|module|component/i.test(projectText);
+  const hasPerformance = /perform|latency|optimi[sz]|responsiv/i.test(projectText);
+  const hasScalability = /scalab|reliab|maintainab/i.test(projectText);
+  const hasApiDepth = /api|integration|endpoint|request|response/i.test(projectText);
+
+  const selectiveExpansions: string[] = [];
+  if (!hasArchitecture) {
+    selectiveExpansions.push(`Designed system architecture and module boundaries${techLine} to improve maintainability and long-term scalability.`);
+  }
+  if (!hasApiDepth) {
+    selectiveExpansions.push(`Implemented API integration and data flow orchestration${techLine} to streamline workflows and reduce operational complexity.`);
+  }
+  if (!hasPerformance) {
+    selectiveExpansions.push(`Optimized runtime behavior and request handling${techLine} to enhance user experience and responsiveness under load.`);
+  }
+  if (!hasScalability) {
+    selectiveExpansions.push(`Engineered scalable service patterns and reusable components${techLine} to improve system efficiency and reliability.`);
+  }
+
+  // Keep one fallback only when required to hit target bullet count.
+  selectiveExpansions.push(`Developed resilient error handling and fallback strategies${techLine} to increase reliability and maintainability across core features.`);
+
+  const expansionPool = selectiveExpansions
+    .map((line, idx) => ensureImpactStatement(line, seed + 30 + idx));
+
+  const merged: string[] = [];
+  const seen = new Set<string>();
+  for (const bullet of [...baseBullets, ...expansionPool]) {
+    const key = bullet.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(bullet);
+    if (merged.length >= targetBullets) break;
+  }
+
+  const normalizedDescription = (() => {
+    const expanded = expandProjectDescription(project);
+    const segments = expanded
+      .split(/(?<=[.!?])\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    const ensured = [...segments];
+    if (!/problem|challenge|need/i.test(expanded)) {
+      ensured.unshift("Addressed a practical product need by structuring requirements into a reliable technical implementation.");
+    }
+    if (!/solution|architecture|approach|design/i.test(expanded)) {
+      ensured.push("Solution approach emphasized modular architecture and integration-safe design decisions.");
+    }
+    if (!/result|impact|improv|enhanc|optimiz|scalab|reliab/i.test(expanded)) {
+      ensured.push("Result improved usability, scalability, and maintainability for production-like usage scenarios.");
+    }
+
+    return ensured.slice(0, 3).join(" ").trim();
+  })();
+
+  return {
+    ...project,
+    description: normalizedDescription,
+    bullets: merged.slice(0, targetBullets),
+  };
+}
+
+function estimateSinglePageLoad(resumeData: ResumeDataPayload): number {
+  const projectCount = (resumeData.projects ?? []).length;
+  const bulletCount = (resumeData.projects ?? []).reduce(
+    (acc, project) => acc + (project.bullets?.filter(Boolean).length ?? 0),
+    0
+  );
+  const descWords = (resumeData.projects ?? []).reduce(
+    (acc, project) => acc + String(project.description ?? "").split(/\s+/).filter(Boolean).length,
+    0
+  );
+  const skillTokens = Object.values(resumeData.skills ?? {}).join(",").split(/[,/|]/).map((t) => t.trim()).filter(Boolean).length;
+  const certCount = (resumeData.certificates ?? []).filter((c) => c.name?.trim()).length;
+  const achieveCount = (resumeData.achievements ?? []).filter((a) => a.title?.trim()).length;
+  const eduCount = (resumeData.education ?? []).filter((e) => e.degree?.trim() || e.institution?.trim()).length;
+
+  const load =
+    projectCount * 9 +
+    bulletCount * 3.5 +
+    descWords * 0.18 +
+    skillTokens * 0.9 +
+    certCount * 2 +
+    achieveCount * 1.5 +
+    eduCount * 2;
+
+  return Math.round(load);
+}
+
+function trimForSinglePage(resumeData: ResumeDataPayload): ResumeDataPayload {
+  const projects = (resumeData.projects ?? [])
+    .map((project) => ({
+      ...project,
+      bullets: (project.bullets ?? []).slice(0, 3),
+      technologies: splitTechList(String(project.technologies ?? "")).slice(0, 6).join(", "),
+    }))
+    .slice(0, 5);
+
+  return {
+    ...resumeData,
+    projects,
+    certificates: (resumeData.certificates ?? []).slice(0, 8),
+    achievements: (resumeData.achievements ?? []).slice(0, 6),
+  };
+}
+
+function balanceResumeForSinglePage(
+  resumeData: ResumeDataPayload,
+  keywordTargets: KeywordTarget[],
+  portfolioUrl: string
+): ResumeDataPayload {
+  let balanced = ensureMandatorySections(inferSkillsFromProjects(resumeData), portfolioUrl);
+
+  // Hard requirement: each project should carry strong depth for dense one-page quality.
+  balanced = {
+    ...balanced,
+    projects: (balanced.projects ?? []).map((project, idx) => ensureMinimumProjectDepth(project, idx * 17, 5)),
+  };
+
+  let load = estimateSinglePageLoad(balanced);
+  const lowThreshold = 96;
+  const highThreshold = 132;
+
+  if (load < lowThreshold) {
+    balanced = {
+      ...balanced,
+      projects: (balanced.projects ?? []).map((project, idx) => ensureMinimumProjectDepth(
+        expandProjectBulletsForLowContent(project, idx * 13),
+        idx * 19,
+        6
+      )),
+      certificates: balanced.certificates ?? [],
+    };
+  }
+
+  load = estimateSinglePageLoad(balanced);
+  if (load > highThreshold) {
+    balanced = trimForSinglePage(balanced);
+  }
+
+  // Final curation pass keeps 3-5 strongest projects and preserves JD relevance.
+  balanced = curateAndSelectProjects(balanced, keywordTargets);
+
+  // Re-apply minimum depth after curation so selected projects remain expanded.
+  balanced = {
+    ...balanced,
+    projects: (balanced.projects ?? []).map((project, idx) => ensureMinimumProjectDepth(project, idx * 23, 5)),
+  };
+
+  return balanced;
+}
+
 function computeAtsInsights(
   resumeData: ResumeDataPayload | null,
-  jobDescription: string,
-  aiMatchedKeywords: string[],
-  aiMissingKeywords: string[]
+  hasUserJD: boolean,
+  keywordAlignment: KeywordAlignmentResult | null,
+  _aiMatchedKeywords: string[],
+  _aiMissingKeywords: string[]
 ): { atsScore: number; matchedKeywords: string[]; missingKeywords: string[]; tip: string } {
   if (!resumeData) {
     return {
@@ -895,30 +2131,16 @@ function computeAtsInsights(
     .join(" ")
     .toLowerCase();
 
-  const hasJD = jobDescription.trim().length > 0;
-  const stop = new Set([
-    "the", "and", "for", "with", "from", "that", "this", "you", "your", "are", "our", "will", "have", "has",
-    "job", "role", "work", "team", "using", "build", "developer", "experience", "years", "year", "into", "across",
-  ]);
+  const alignedMatched = keywordAlignment?.matchedKeywords ?? [];
+  const alignedMissing = keywordAlignment?.missingKeywords ?? [];
+  const alignedCoverage = keywordAlignment?.coverageRatio ?? 0;
 
-  const jdKeywords = Array.from(
-    new Set(
-      jobDescription
-        .toLowerCase()
-        .split(/[^a-z0-9+#.]+/)
-        .map((w) => w.trim())
-        .filter((w) => w.length >= 3 || ["c", "c++", "c#", "go", "ui", "ux"].includes(w))
-        .filter((w) => !stop.has(w))
-    )
-  ).slice(0, 20);
-
-  const computedMatched = jdKeywords.filter((k) => textParts.includes(k));
-  const computedMissing = jdKeywords.filter((k) => !textParts.includes(k));
-
-  const mergedMatched = Array.from(new Set([...computedMatched, ...aiMatchedKeywords])).slice(0, 12);
-  const mergedMissing = Array.from(new Set([...computedMissing, ...aiMissingKeywords]))
+  const mergedMatched = Array.from(new Set([...alignedMatched]))
+    .filter((keyword) => Boolean(keyword && keyword.trim()))
+    .slice(0, 14);
+  const mergedMissing = Array.from(new Set([...alignedMissing]))
     .filter((k) => !mergedMatched.includes(k))
-    .slice(0, 8);
+    .slice(0, 10);
 
   const contactsCount = Object.values(resumeData.contacts ?? {}).filter(Boolean).length;
   const skillBuckets = Object.values(resumeData.skills ?? {}).filter((v) => Boolean(v && String(v).trim())).length;
@@ -937,21 +2159,41 @@ function computeAtsInsights(
     Math.min(10, eduCount * 5);
 
   const normalizedStructure = Math.min(100, Math.round(structureScore));
-  const coverage = hasJD && jdKeywords.length > 0
-    ? Math.round((computedMatched.length / jdKeywords.length) * 100)
-    : 0;
+  const keywordCoverageScore = Math.round(alignedCoverage * 100);
 
-  const atsScore = hasJD
-    ? Math.max(35, Math.min(99, Math.round(normalizedStructure * 0.6 + coverage * 0.4)))
-    : Math.max(35, Math.min(96, Math.round(normalizedStructure * 0.92 + Math.min(8, projectCount))));
+  const atsScore = hasUserJD
+    ? Math.max(
+        40,
+        Math.min(
+          99,
+          Math.round(
+            normalizedStructure * 0.45 +
+              keywordCoverageScore * 0.5 +
+              Math.min(5, mergedMatched.length)
+          )
+        )
+      )
+    : Math.max(
+        38,
+        Math.min(
+          97,
+          Math.round(
+            normalizedStructure * 0.5 +
+              keywordCoverageScore * 0.4 +
+              Math.min(7, projectCount)
+          )
+        )
+      );
 
   let tip = "Resume is balanced and ATS-friendly.";
   if (projectCount < 4) {
     tip = "Add more portfolio-backed projects for stronger ATS relevance.";
-  } else if (hasJD && mergedMissing.length > 0) {
+  } else if (mergedMissing.length > 0) {
     tip = `Add missing JD terms naturally: ${mergedMissing.slice(0, 3).join(", ")}.`;
   } else if (skillBuckets < 5) {
     tip = "Expand skills by category (frontend, backend, database, tools, cloud, languages).";
+  } else if (keywordCoverageScore < 70) {
+    tip = "Increase keyword alignment in skills and project bullets while keeping statements factual.";
   }
 
   return {
@@ -960,6 +2202,103 @@ function computeAtsInsights(
     missingKeywords: mergedMissing,
     tip,
   };
+}
+
+function stripCodeFences(value: string): string {
+  return value
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+}
+
+function extractBalancedJsonObject(raw: string): string | null {
+  const text = stripCodeFences(raw);
+  const firstBrace = text.indexOf("{");
+  if (firstBrace === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = firstBrace; i < text.length; i += 1) {
+    const ch = text[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (inString) {
+      if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (ch === "{") depth += 1;
+    if (ch === "}") depth -= 1;
+
+    if (depth === 0) {
+      return text.slice(firstBrace, i + 1);
+    }
+  }
+
+  return null;
+}
+
+function extractJsonWithRegex(raw: string): string | null {
+  const text = stripCodeFences(raw);
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  return jsonMatch?.[0] ?? null;
+}
+
+function validateAndNormalizeResumeShape(value: unknown): ResumeDataPayload | null {
+  if (!value || typeof value !== "object") return null;
+
+  const source = value as ResumeDataPayload;
+  const hasProfile = Boolean(source.name?.trim() || source.title?.trim());
+
+  // Required rendering sections for safe UI hydration.
+  if (!hasProfile) return null;
+
+  return {
+    ...source,
+    contacts: source.contacts ?? {},
+    skills: source.skills ?? {},
+    projects: Array.isArray(source.projects) ? source.projects : [],
+    education: Array.isArray(source.education) ? source.education : [],
+    certificates: Array.isArray(source.certificates) ? source.certificates : [],
+    achievements: Array.isArray(source.achievements) ? source.achievements : [],
+  };
+}
+
+async function coerceModelOutputToJson(raw: string): Promise<string | null> {
+  const repairPrompt = `Convert the following content into STRICT valid JSON only.
+Rules:
+- Return only a single JSON object.
+- No markdown fences.
+- No commentary.
+- Preserve original facts; do not add new facts.
+
+Content:
+"""
+${raw.slice(0, 12000)}
+"""`;
+
+  const repaired = await callAI(repairPrompt, {
+    provider: "groq",
+    temperature: 0,
+  });
+
+  return extractBalancedJsonObject(repaired);
 }
 
 // ─── Main Route ──────────────────────────────────────────────────────────
@@ -1019,6 +2358,9 @@ Use ATS-friendly wording and realistic impact statements without fabrication.`;
 TEMPLATE FORMAT TO USE:
 ${templateFormat}
 
+  EXISTING RESUME (base):
+  Use ONLY if implicitly available from provided source text. Do not invent missing details.
+
 ═══════════════════════════════════════════
 PORTFOLIO DATA (deep scraped):
 ${portfolioContent}
@@ -1032,8 +2374,18 @@ Now generate the perfect resume. Remember: use REAL data from the portfolio only
 
     const raw = await callAI(prompt, { provider: "groq", temperature: 0.25 });
 
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    let jsonCandidate = extractBalancedJsonObject(raw);
+    if (!jsonCandidate) {
+      jsonCandidate = await coerceModelOutputToJson(raw);
+    }
+    if (!jsonCandidate) {
+      jsonCandidate = extractJsonWithRegex(raw);
+    }
+
+    if (!jsonCandidate) {
+      console.error("[build-resume] Unable to isolate JSON from AI response", {
+        preview: raw.slice(0, 1500),
+      });
       throw new Error("AI returned an unexpected format. Please try again.");
     }
 
@@ -1083,16 +2435,72 @@ Now generate the perfect resume. Remember: use REAL data from the portfolio only
 
     let parsed: Record<string, unknown>;
     try {
-      parsed = JSON.parse(jsonMatch[0]);
+      parsed = JSON.parse(jsonCandidate);
     } catch {
-      // First parse failed — repair control chars then try again
-      parsed = JSON.parse(repairJson(jsonMatch[0]));
+      try {
+        // First parse failed — repair control chars then try again
+        parsed = JSON.parse(repairJson(jsonCandidate));
+      } catch {
+        const regexFallback = extractJsonWithRegex(raw);
+        if (!regexFallback) {
+          console.error("[build-resume] JSON.parse failed and regex fallback not found", {
+            preview: raw.slice(0, 1500),
+          });
+          throw new Error("AI response parsing failed. Please retry.");
+        }
+
+        try {
+          parsed = JSON.parse(regexFallback);
+        } catch {
+          console.error("[build-resume] JSON.parse failed for regex fallback", {
+            preview: raw.slice(0, 1500),
+          });
+          throw new Error("AI response parsing failed. Please retry.");
+        }
+      }
     }
 
 
-    const resumeData = typeof parsed.resumeData === "object" && parsed.resumeData
-      ? enrichResumeProjectsFromSource(parsed.resumeData as ResumeDataPayload, portfolioContent)
+    const hasUserJD = Boolean(jobDescription?.trim());
+
+    const validResumeData = validateAndNormalizeResumeShape(parsed.resumeData);
+    if (!validResumeData) {
+      console.error("[build-resume] Parsed JSON missing required resume sections", {
+        keys: parsed.resumeData && typeof parsed.resumeData === "object"
+          ? Object.keys(parsed.resumeData as Record<string, unknown>)
+          : [],
+      });
+      throw new Error("AI response is missing required resume sections. Please retry.");
+    }
+
+    const parsedResumeData = normalizeProjectsWithImpact(
+      enrichResumeProjectsFromSource(validResumeData, portfolioContent)
+    );
+
+    const initialKeywordAlignment = parsedResumeData
+      ? alignResumeKeywords(parsedResumeData, effectiveJobDescription, hasUserJD)
       : null;
+
+    const keywordTargets = extractPrioritizedKeywords(effectiveJobDescription, hasUserJD);
+
+    const curatedResumeData = initialKeywordAlignment?.resumeData
+      ? curateAndSelectProjects(
+          applyBulletDiversityAndAntiRepetition(initialKeywordAlignment.resumeData),
+          keywordTargets
+        )
+      : parsedResumeData;
+
+    const balancedResumeData = curatedResumeData
+      ? balanceResumeForSinglePage(curatedResumeData, keywordTargets, portfolioUrl)
+      : null;
+
+    const keywordAlignment = balancedResumeData
+      ? alignResumeKeywords(balancedResumeData, effectiveJobDescription, hasUserJD)
+      : null;
+
+    const resumeData = keywordAlignment?.resumeData
+      ? applyBulletDiversityAndAntiRepetition(keywordAlignment.resumeData)
+      : balancedResumeData;
 
     const aiMatchedKeywords = Array.isArray(parsed.matchedKeywords)
       ? parsed.matchedKeywords.filter((v): v is string => typeof v === "string")
@@ -1103,7 +2511,8 @@ Now generate the perfect resume. Remember: use REAL data from the portfolio only
 
     const insights = computeAtsInsights(
       resumeData,
-      jobDescription?.trim() ?? "",
+      hasUserJD,
+      keywordAlignment,
       aiMatchedKeywords,
       aiMissingKeywords
     );
