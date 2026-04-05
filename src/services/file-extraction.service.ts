@@ -7,20 +7,26 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import mammoth from "mammoth";
 
-// Ensure @napi-rs/canvas native binaries are traced and bundled by Vercel
-// and polyfill missing DOM classes for pdf-parse/pdfjs-dist in headless Node environments
-import * as canvas from "@napi-rs/canvas";
-if (typeof globalThis.DOMMatrix === "undefined") {
+// Polyfill missing DOM classes for pdf-parse in headless Node environments
+// Try to load @napi-rs/canvas if available, otherwise use minimal stubs
+try {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).DOMMatrix = canvas.DOMMatrix;
-}
-if (typeof globalThis.ImageData === "undefined") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).ImageData = canvas.ImageData;
-}
-if (typeof globalThis.Path2D === "undefined") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).Path2D = canvas.Path2D;
+  const canvas = require("@napi-rs/canvas") as any;
+  if (typeof globalThis.DOMMatrix === "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).DOMMatrix = canvas.DOMMatrix;
+  }
+  if (typeof globalThis.ImageData === "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).ImageData = canvas.ImageData;
+  }
+  if (typeof globalThis.Path2D === "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).Path2D = canvas.Path2D;
+  }
+} catch {
+  // Canvas not available on Vercel; pdf-parse will work with native text extraction
+  // but may not render fonts. That's okay—we only need text, not rendering.
 }
 
 const execFileAsync = promisify(execFile);
@@ -102,8 +108,34 @@ async function extractWithTextutil(filePath: string): Promise<string> {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
+  const require = createRequire(import.meta.url);
+
+  // Suppress pdfjs-dist warnings in Vercel environment
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  const suppressedWarnings: string[] = [];
+
   try {
-    const require = createRequire(import.meta.url);
+    // Temporarily suppress warnings about missing canvas during pdf-parse
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.warn = (...args: any[]) => {
+      const msg = args.join(" ");
+      if (!msg.includes("Cannot load") && !msg.includes("Cannot polyfill")) {
+        originalWarn(...args);
+      } else {
+        suppressedWarnings.push(msg);
+      }
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.error = (...args: any[]) => {
+      const msg = args.join(" ");
+      if (!msg.includes("Cannot load") && !msg.includes("Cannot polyfill")) {
+        originalError(...args);
+      } else {
+        suppressedWarnings.push(msg);
+      }
+    };
+
     const { PDFParse } = require("pdf-parse") as {
       PDFParse: new (options: { data: Buffer | Uint8Array }) => {
         getText: () => Promise<{ text?: string }>;
@@ -123,11 +155,14 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     } finally {
       await parser?.destroy().catch(() => undefined);
     }
-  } catch {
-    // Fall through to platform-specific extraction when pdf-parse
-    // cannot initialize in the current runtime (for example missing DOM APIs).
+  } catch (err) {
+    console.error("pdf-parse extraction error:", err instanceof Error ? err.message : String(err));
+  } finally {
+    console.warn = originalWarn;
+    console.error = originalError;
   }
 
+  // macOS-specific fallback
   if (process.platform === "darwin") {
     const filePath = await writeTempFile(buffer, ".pdf");
     try {
@@ -137,7 +172,9 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
         "kMDItemTextContent",
         filePath,
       ]);
-      const normalized = normalizeExtractedText(stdout.replace(/^\(null\)$/i, "").trim());
+      const normalized = normalizeExtractedText(
+        stdout.replace(/^\(null\)$/i, "").trim()
+      );
       if (normalized && !looksLikeBinaryPdfPayload(normalized)) {
         return normalized;
       }
