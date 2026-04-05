@@ -102,25 +102,30 @@ async function extractWithTextutil(filePath: string): Promise<string> {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  const require = createRequire(import.meta.url);
-  const { PDFParse } = require("pdf-parse") as {
-    PDFParse: new (options: { data: Buffer | Uint8Array }) => {
-      getText: () => Promise<{ text?: string }>;
-      destroy: () => Promise<void>;
-    };
-  };
-
-  let parser: InstanceType<typeof PDFParse> | null = null;
-
   try {
-    parser = new PDFParse({ data: buffer });
-    const parsed = await parser.getText();
-    const normalized = normalizeExtractedText(parsed.text ?? "");
-    if (normalized && !looksLikeBinaryPdfPayload(normalized)) {
-      return normalized;
+    const require = createRequire(import.meta.url);
+    const { PDFParse } = require("pdf-parse") as {
+      PDFParse: new (options: { data: Buffer | Uint8Array }) => {
+        getText: () => Promise<{ text?: string }>;
+        destroy: () => Promise<void>;
+      };
+    };
+
+    let parser: InstanceType<typeof PDFParse> | null = null;
+
+    try {
+      parser = new PDFParse({ data: buffer });
+      const parsed = await parser.getText();
+      const normalized = normalizeExtractedText(parsed.text ?? "");
+      if (normalized && !looksLikeBinaryPdfPayload(normalized)) {
+        return normalized;
+      }
+    } finally {
+      await parser?.destroy().catch(() => undefined);
     }
-  } finally {
-    await parser?.destroy().catch(() => undefined);
+  } catch {
+    // Fall through to platform-specific extraction when pdf-parse
+    // cannot initialize in the current runtime (for example missing DOM APIs).
   }
 
   if (process.platform === "darwin") {
