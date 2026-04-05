@@ -110,32 +110,50 @@ async function extractWithTextutil(filePath: string): Promise<string> {
 async function extractPdfText(buffer: Buffer): Promise<string> {
   const require = createRequire(import.meta.url);
 
-  // Suppress pdfjs-dist warnings in Vercel environment
-  const originalWarn = console.warn;
-  const originalError = console.error;
-  const suppressedWarnings: string[] = [];
-
+  // First, try direct pdfjs-dist extraction (works on Vercel without canvas)
   try {
-    // Temporarily suppress warnings about missing canvas during pdf-parse
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    console.warn = (...args: any[]) => {
-      const msg = args.join(" ");
-      if (!msg.includes("Cannot load") && !msg.includes("Cannot polyfill")) {
-        originalWarn(...args);
-      } else {
-        suppressedWarnings.push(msg);
-      }
-    };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    console.error = (...args: any[]) => {
-      const msg = args.join(" ");
-      if (!msg.includes("Cannot load") && !msg.includes("Cannot polyfill")) {
-        originalError(...args);
-      } else {
-        suppressedWarnings.push(msg);
-      }
-    };
+    const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js") as any;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve(
+      "pdfjs-dist/legacy/build/pdf.worker.js"
+    );
 
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+    const pages: string[] = [];
+
+    for (let i = 1; i <= Math.min(pdf.numPages, 100); i++) {
+      try {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pageText = textContent.items
+          .map((item: any) => {
+            // Safety: some items might not have str
+            return typeof item === "object" && "str" in item ? (item.str as string) : "";
+          })
+          .join(" ");
+        if (pageText.trim()) {
+          pages.push(pageText);
+        }
+      } catch (pageErr) {
+        console.warn(`Skipping page ${i}:`, pageErr instanceof Error ? pageErr.message : String(pageErr));
+      }
+    }
+
+    const fullText = pages.join("\n");
+    const normalized = normalizeExtractedText(fullText);
+    if (normalized && !looksLikeBinaryPdfPayload(normalized)) {
+      return normalized;
+    }
+  } catch (err) {
+    console.error(
+      "[pdfjs-dist extraction]",
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+
+  // Fallback: try pdf-parse (some PDFs work better with it)
+  try {
     const { PDFParse } = require("pdf-parse") as {
       PDFParse: new (options: { data: Buffer | Uint8Array }) => {
         getText: () => Promise<{ text?: string }>;
@@ -156,10 +174,10 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
       await parser?.destroy().catch(() => undefined);
     }
   } catch (err) {
-    console.error("pdf-parse extraction error:", err instanceof Error ? err.message : String(err));
-  } finally {
-    console.warn = originalWarn;
-    console.error = originalError;
+    console.error(
+      "[pdf-parse fallback]",
+      err instanceof Error ? err.message : String(err)
+    );
   }
 
   // macOS-specific fallback
